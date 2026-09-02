@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4efe6">
+  <meta name="description" content="Семейный помощник с уроками для Степана, Родиона, Алины и Полины">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <title>Урок рядом — семейный помощник</title>
+  <style>
+    :root {
+      --ink: #183048;
+      --ink-soft: #526779;
+      --paper: #f7f1e8;
+      --paper-2: #eee5d8;
+      --rose: #d98d91;
+      --rose-soft: #f3d7d5;
+      --gold: #d6aa58;
+      --gold-soft: #f4e3b8;
+      --sage: #8ca99d;
+      --sage-soft: #dce9e2;
+      --blue-soft: #dbe6ed;
+      --line: rgba(24, 48, 72, .13);
+      --shadow: 0 18px 50px rgba(34, 45, 57, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; min-height: 100%; }
+
+    body {
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 8%, rgba(217, 141, 145, .27), transparent 28%),
+        radial-gradient(circle at 90% 88%, rgba(140, 169, 157, .28), transparent 30%),
+        #d9d4cb;
+      font-family: "Trebuchet MS", "Gill Sans", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100svh;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; -webkit-tap-highlight-color: transparent; }
+
+    .phone {
+      position: relative;
+      width: min(100%, 430px);
+      min-height: 100svh;
+      margin: 0 auto;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.25)),
+        repeating-linear-gradient(0deg, transparent 0 27px, rgba(24, 48, 72, .026) 28px),
+        var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .25;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      z-index: 20;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(16px + env(safe-area-inset-top)) 20px 10px;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      border: 1.7px solid var(--ink);
+      border-radius: 50% 48% 46% 52%;
+      transform: rotate(-7deg);
+    }
+    .brand-mark::before,
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      border: 1.5px solid var(--rose);
+      border-radius: 50%;
+    }
+    .brand-mark::before { inset: 7px 5px 7px 10px; transform: rotate(36deg); }
+    .brand-mark::after { inset: 11px 10px 4px 6px; transform: rotate(-28deg); }
+    .brand-name {
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      font-size: 21px;
+      font-weight: 700;
+      letter-spacing: -.4px;
+    }
+    .brand-caption {
+      display: block;
+      margin-top: -2px;
+      color: var(--ink-soft);
+      font-size: 10px;
+      letter-spacing: 1.35px;
+      text-transform: uppercase;
+    }
+
+    .preview-pill {
+      border: 1px solid rgba(24, 48, 72, .18);
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: rgba(255,255,255,.52);
+      color: var(--ink-soft);
+      font-size: 10px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+
+    .view {
+      display: none;
+      position: relative;
+      z-index: 2;
+      padding: 12px 20px 105px;
+      animation: reveal .42s cubic-bezier(.2,.75,.2,1) both;
+    }
+    .view.active { display: block; }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { position: relative; padding: 21px 4px 12px; }
+    .eyebrow {
+      color: var(--rose);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.65px;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 330px;
+      margin: 9px 0 12px;
+      font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+      font-size: clamp(35px, 9vw, 43px);
+      line-height: .99;
+      letter-spacing: -1.35px;
+      font-weight: 700;
+    }
+    .hero p {
+      max-width: 315px;
+      margin-bottom: 0;
+      color: var(--ink-soft);
+      font-size: 14px;
+      line-height: 1.48;
+    }
+
+    .thread-art {
+      position: absolute;
+      top: 5px;
+      right: -22px;
+      width: 112px;
+      height: 112px;
+      opacity: .55;
+      pointer-events: none;
+    }
+    .thread-art path { fill: none; stroke: var(--gold); stroke-width: 1.3; }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 20px 2px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+    }
+    .section-label span:last-child { color: var(--ink-soft); font-size: 10px; font-weight: 500; }
+
+    .profiles {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 11px;
+    }
+    .profile-card {
+      position: relative;
+      min-height: 145px;
+      border: 1px solid var(--line);
+      border-radius: 22px 8px 22px 8px;
+      padding: 16px 14px 13px;
+      overflow: hidden;
+      text-align: left;
+      background: rgba(255,255,255,.55);
+      box-shadow: 0 8px 20px rgba(24, 48, 72, .07);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .profile-card:active { transform: scale(.975); }
+    .profile-card::after {
+      content: "";
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border: 1px solid currentColor;
+      border-radius: 44% 56% 48% 52%;
+      right: -26px;
+      bottom: -29px;
+      opacity: .23;
+    }
+    .profile-card:nth-child(1) { background: var(--blue-soft); }
+    .profile-card:nth-child(2) { background: var(--gold-soft); }
+    .profile-card:nth-child(3) { background: var(--rose-soft); }
+    .profile-card:nth-child(4) { background: var(--sage-soft); }
+    .avatar {
+      display: grid;
+      place-items: center;
+      width: 43px;
+      height: 43px;
+      margin-bottom: 14px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.72);
+      font-family: Georgia, serif;
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: inset 0 0 0 1px rgba(24,48,72,.08);
+    }
+    .profile-name { display: block; margin-bottom: 3px; font-size: 15px; font-weight: 800; }
+    .profile-grade { color: var(--ink-soft); font-size: 12px; }
+    .profile-arrow {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      font-size: 17px;
+      opacity: .62;
+    }
+
+    .promise {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 15px;
+      padding: 13px 14px;
+      border: 1px dashed rgba(24,48,72,.24);
+      border-radius: 14px;
+      background: rgba(255,255,255,.35);
+    }
+    .promise-icon { font-size: 22px; }
+    .promise b { display: block; margin-bottom: 2px; font-family: Georgia, serif; font-size: 14px; }
+    .promise small { color: var(--ink-soft); font-size: 11px; line-height: 1.3; }
+
+    .chat-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 4px 0 14px;
+      padding-bottom: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    .back {
+      display: grid;
+      place-items: center;
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: rgba(255,255,255,.46);
+      cursor: pointer;
+    }
+    .chat-person { flex: 1; }
+    .chat-person b { display: block; font-family: Georgia, serif; font-size: 17px; }
+    .chat-person span { color: var(--sage); font-size: 11px; font-weight: 700; }
+
+    .messages {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 430px;
+      max-height: calc(100svh - 290px);
+      overflow-y: auto;
+      padding: 4px 2px 18px;
+      scrollbar-width: none;
+    }
+    .messages::-webkit-scrollbar { display: none; }
+    .bubble {
+      max-width: 86%;
+      padding: 12px 14px;
+      border-radius: 5px 18px 18px 18px;
+      background: white;
+      box-shadow: 0 6px 18px rgba(24,48,72,.08);
+      font-size: 13px;
+      line-height: 1.47;
+      animation: pop .3s ease both;
+    }
+    @keyframes pop { from { opacity: 0; transform: scale(.97) translateY(6px); } }
+    .bubble.me {
+      align-self: flex-end;
+      border-radius: 18px 5px 18px 18px;
+      background: var(--ink);
+      color: white;
+    }
+    .bubble .who {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--rose);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .task-photo {
+      width: 100%;
+      margin-top: 8px;
+      padding: 14px;
+      border-radius: 10px;
+      background:
+        repeating-linear-gradient(0deg, #fffdfa 0 21px, #dae4ed 22px),
+        #fffdfa;
+      color: #2c4260;
+      transform: rotate(-.7deg);
+      font-family: Georgia, serif;
+      font-size: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.1);
+    }
+    .typing { display: inline-flex; gap: 4px; align-items: center; }
+    .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); animation: blink 1s infinite; }
+    .typing i:nth-child(2) { animation-delay: .15s; }
+    .typing i:nth-child(3) { animation-delay: .3s; }
+    @keyframes blink { 50% { opacity: .25; transform: translateY(-2px); } }
+
+    .quick-actions { display: flex; gap: 8px; overflow-x: auto; padding: 0 1px 10px; scrollbar-width: none; }
+    .quick-actions::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: 0 0 auto;
+      border: 1px solid rgba(24,48,72,.18);
+      border-radius: 999px;
+      padding: 9px 12px;
+      background: rgba(255,255,255,.62);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .chip.primary { border-color: var(--ink); background: var(--ink); color: white; }
+    .composer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,.72);
+      box-shadow: 0 8px 25px rgba(24,48,72,.09);
+    }
+    .attach, .send {
+      display: grid;
+      place-items: center;
+      flex: 0 0 38px;
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .attach { background: var(--paper-2); }
+    .send { background: var(--rose); color: white; }
+    .composer input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
+
+    .report-title { padding: 13px 2px 5px; }
+    .report-title h2 {
+      margin: 7px 0 5px;
+      font-family: Georgia, serif;
+      font-size: 31px;
+      line-height: 1;
+    }
+    .report-title p { color: var(--ink-soft); font-size: 13px; }
+    .summary-card {
+      position: relative;
+      margin: 12px 0;
+      padding: 18px;
+      overflow: hidden;
+      border-radius: 24px 9px 24px 9px;
+      background: var(--ink);
+      color: white;
+      box-shadow: 0 13px 28px rgba(24,48,72,.18);
+    }
+    .summary-card::after {
+      content: "";
+      position: absolute;
+      width: 150px;
+      height: 150px;
+      right: -65px;
+      top: -55px;
+      border: 1px solid rgba(255,255,255,.22);
+      border-radius: 50%;
+      box-shadow: 0 0 0 18px rgba(255,255,255,.05), 0 0 0 38px rgba(255,255,255,.035);
+    }
+    .summary-card small { color: rgba(255,255,255,.65); letter-spacing: .7px; text-transform: uppercase; }
+    .summary-card strong { display: block; margin: 7px 0 3px; font-family: Georgia, serif; font-size: 27px; }
+    .summary-card p { max-width: 260px; margin: 0; color: rgba(255,255,255,.78); font-size: 12px; line-height: 1.45; }
+    .metric-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 0 18px; }
+    .metric {
+      padding: 13px 10px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255,255,255,.52);
+      text-align: center;
+    }
+    .metric b { display: block; font-family: Georgia, serif; font-size: 22px; }
+    .metric span { color: var(--ink-soft); font-size: 9px; line-height: 1.2; text-transform: uppercase; }
+    .topic {
+      display: grid;
+      grid-template-columns: 38px 1fr auto;
+      gap: 11px;
+      align-items: center;
+      padding: 12px 4px;
+      border-bottom: 1px solid var(--line);
+    }
+    .topic-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: var(--rose-soft); }
+    .topic:nth-child(2) .topic-icon { background: var(--gold-soft); }
+    .topic:nth-child(3) .topic-icon { background: var(--sage-soft); }
+    .topic b { display: block; font-size: 12px; }
+    .topic small { color: var(--ink-soft); font-size: 10px; }
+    .topic-state { padding: 5px 8px; border-radius: 999px; background: var(--sage-soft); color: #4a7462; font-size: 9px; font-weight: 800; }
+    .topic-state.repeat { background: var(--rose-soft); color: #97585e; }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 15;
+      left: 50%;
+      bottom: 0;
+      width: min(100%, 430px);
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 10px 25px calc(11px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      background: rgba(247,241,232,.93);
+      backdrop-filter: blur(14px);
+    }
+    .nav-btn {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      border: 0;
+      background: transparent;
+      color: var(--ink-soft);
+      font-size: 9px;
+      cursor: pointer;
+    }
+    .nav-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .nav-btn.active { color: var(--rose); font-weight: 800; }
+
+    .toast {
+      position: fixed;
+      z-index: 40;
+      left: 50%;
+      bottom: 92px;
+      transform: translate(-50%, 18px);
+      width: min(calc(100% - 40px), 380px);
+      padding: 11px 13px;
+      border-radius: 12px;
+      background: var(--ink);
+      color: white;
+      text-align: center;
+      font-size: 11px;
+      opacity: 0;
+      pointer-events: none;
+      transition: .25s ease;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (min-width: 431px) {
+      body { padding: 18px 0; }
+      .phone { min-height: calc(100svh - 36px); border-radius: 32px; }
+      .bottom-nav { bottom: 18px; border-radius: 0 0 32px 32px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>
+          <span class="brand-name">Урок рядом</span>
+          <span class="brand-caption">семейный помощник</span>
+        </span>
+      </div>
+      <span class="preview-pill">макет</span>
+    </header>
+
+    <section id="home" class="view active">
+      <div class="hero">
+        <span class="eyebrow">Добрый день, Надюша</span>
+        <h1>Кто сейчас занимается?</h1>
+        <p>Выбери ребёнка — объяснение сразу подстроится под его класс и темп.</p>
+        <svg class="thread-art" viewBox="0 0 120 120" aria-hidden="true">
+          <path d="M108 7C82 17 99 43 72 48C46 52 42 26 62 22C88 16 105 54 79 70C58 84 30 66 38 49C48 29 76 41 71 65C67 85 39 102 13 93"/>
+          <path d="M14 93c8-1 12 4 8 10"/>
+        </svg>
+      </div>
+
+      <div class="section-label"><span>Детские профили</span><span>4 профиля</span></div>
+      <div class="profiles">
+        <button class="profile-card" onclick="selectProfile('senior')">
+          <span class="profile-arrow">↗</span><span class="avatar">С</span>
+          <span class="profile-name">Степан</span><span class="profile-grade">8 класс</span>
+        </button>
+        <button class="profile-card" onclick="selectProfile('middle')">
+          <span class="profile-arrow">↗</span><span class="avatar">Р</span>
+          <span class="profile-name">Родион</span><span class="profile-grade">5 класс</span>
+        </button>
+        <button class="profile-card" onclick="selectProfile('twin1')">
+          <span class="profile-arrow">↗</span><span class="avatar">А</span>
+          <span class="profile-name">Алина</span><span class="profile-grade">3 класс</span>
+        </button>
+        <button class="profile-card" onclick="selectProfile('twin2')">
+          <span class="profile-arrow">↗</span><span class="avatar">П</span>
+          <span class="profile-name">Полина</span><span class="profile-grade">3 класс</span>
+        </button>
+      </div>
+
+      <div class="promise">
+        <span class="promise-icon">✦</span>
+        <span><b>Не выдаёт ответ сразу</b><small>Сначала объяснит, даст подсказку и попросит попробовать самостоятельно.</small></span>
+      </div>
+    </section>
+
+    <section id="chat" class="view">
+      <div class="chat-head">
+        <button class="back" onclick="showView('home')" aria-label="Назад">←</button>
+        <span class="avatar" id="chatAvatar" style="margin:0">С</span>
+        <span class="chat-person"><b id="chatName">Степан</b><span>● помощник готов</span></span>
+      </div>
+
+      <div id="messages" class="messages">
+        <div class="bubble">
+          <span class="who">Урок рядом</span>
+          Привет! Пришли фотографию задания, напиши условие или запиши голосовое. Будем разбираться вместе, по шагам.
+        </div>
+      </div>
+
+      <div class="quick-actions">
+        <button class="chip primary" onclick="sendExample()">📷 Пример задания</button>
+        <button class="chip" onclick="giveHint()">Дай подсказку</button>
+        <button class="chip" onclick="sendAttempt()">Я попробую сам</button>
+      </div>
+      <div class="composer">
+        <button class="attach" onclick="toast('Здесь откроется камера или галерея')" aria-label="Прикрепить">＋</button>
+        <input id="textInput" placeholder="Напиши свой ответ…" onkeydown="if(event.key==='Enter') sendText()">
+        <button class="send" onclick="sendText()" aria-label="Отправить">↑</button>
+      </div>
+    </section>
+
+    <section id="report" class="view">
+      <div class="report-title">
+        <span class="eyebrow">Родительский раздел</span>
+        <h2>Сегодня занимались</h2>
+        <p>Коротко и по делу — без лишних оценок.</p>
+      </div>
+      <div class="summary-card">
+        <small>Главное за день</small>
+        <strong>2 ребёнка · 5 заданий</strong>
+        <p>Математика идёт уверенно. По русскому стоит ещё раз повторить безударные гласные.</p>
+      </div>
+      <div class="metric-row">
+        <div class="metric"><b>38</b><span>минут<br>занятий</span></div>
+        <div class="metric"><b>3</b><span>сделано<br>самостоятельно</span></div>
+        <div class="metric"><b>2</b><span>темы<br>повторить</span></div>
+      </div>
+      <div class="section-label"><span>Темы дня</span><span>2 сентября</span></div>
+      <div>
+        <div class="topic"><span class="topic-icon">＋</span><span><b>Дроби и действия</b><small>5 класс · 3 задания</small></span><span class="topic-state">усвоено</span></div>
+        <div class="topic"><span class="topic-icon">А</span><span><b>Безударные гласные</b><small>3 класс · 2 задания</small></span><span class="topic-state repeat">повторить</span></div>
+        <div class="topic"><span class="topic-icon">EN</span><span><b>Present Simple</b><small>8 класс · без занятия</small></span><span class="topic-state">позже</span></div>
+      </div>
+    </section>
+
+    <nav class="bottom-nav" aria-label="Навигация">
+      <button class="nav-btn active" data-view="home" onclick="showView('home')">
+        <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg><span>Занятие</span>
+      </button>
+      <button class="nav-btn" data-view="report" onclick="showView('report')">
+        <svg viewBox="0 0 24 24"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg><span>Прогресс</span>
+      </button>
+      <button class="nav-btn" onclick="toast('Настройки четырёх детских профилей')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.1 3.4-6 8-6s7.3 1.9 8 6"/></svg><span>Профили</span>
+      </button>
+    </nav>
+    <div id="toast" class="toast"></div>
+  </main>
+
+  <script>
+    const profiles = {
+      senior: { name: 'Степан', grade: 8, avatar: 'С' },
+      middle: { name: 'Родион', grade: 5, avatar: 'Р' },
+      twin1: { name: 'Алина', grade: 3, avatar: 'А' },
+      twin2: { name: 'Полина', grade: 3, avatar: 'П' }
+    };
+    let activeProfile = profiles.senior;
+    let taskSent = false;
+    let lesson = { mode: 'idle', step: null };
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === id));
+      document.querySelectorAll('.nav-btn[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function selectProfile(key) {
+      activeProfile = profiles[key];
+      document.getElementById('chatName').textContent = `${activeProfile.name} · ${activeProfile.grade} класс`;
+      document.getElementById('chatAvatar').textContent = activeProfile.avatar;
+      taskSent = false;
+      lesson = { mode: 'idle', step: null };
+      document.getElementById('messages').innerHTML = `<div class="bubble"><span class="who">Урок рядом</span>Привет! Пришли фотографию задания, напиши условие или запиши голосовое. Будем разбираться вместе, по шагам.</div>`;
+      showView('chat');
+    }
+
+    function addMessage(html, mine = false) {
+      const box = document.getElementById('messages');
+      const item = document.createElement('div');
+      item.className = `bubble${mine ? ' me' : ''}`;
+      item.innerHTML = html;
+      box.appendChild(item);
+      box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+    }
+
+    function botReply(html, delay = 520) {
+      const box = document.getElementById('messages');
+      const typing = document.createElement('div');
+      typing.className = 'bubble';
+      typing.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
+      box.appendChild(typing);
+      box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+      setTimeout(() => {
+        typing.remove();
+        addMessage(`<span class="who">Урок рядом</span>${html}`);
+      }, delay);
+    }
+
+    function sendExample() {
+      if (taskSent) return toast('Пример уже отправлен — попробуй дать ответ');
+      taskSent = true;
+      lesson = { mode: 'practice', step: 'equivalent' };
+      addMessage('Отправлено фото задания<div class="task-photo">Вычисли: 3/4 + 5/8<br>Объясни ход решения.</div>', true);
+      botReply(`Вижу пример с дробями. Сначала сделаем знаменатели одинаковыми.<br><br>Чтобы превратить знаменатель 4 в 8, умножаем его на 2. Числитель тоже умножаем на 2. <b>Какой числитель получится вместо 3?</b>`);
+    }
+
+    function giveHint() {
+      if (!taskSent) return sendExample();
+      addMessage('Дай маленькую подсказку', true);
+      const hints = {
+        equivalent: 'Умножаем 3 × 2 и 4 × 2. Знаменатель уже известен — 8. Осталось вычислить новый числитель.',
+        add: 'Знаменатели одинаковые, поэтому складываем только числители: 6 + 5. Знаменатель 8 сохраняется.',
+        mixed: 'В числе 11/8 одна целая восьмёрка и ещё 3 восьмых. Поэтому целая часть равна 1.'
+      };
+      botReply(hints[lesson.step] || 'Разберём задание по одному действию. Пришли условие — я объясню первый шаг.');
+    }
+
+    function sendAttempt() {
+      if (!taskSent) return sendExample();
+      const attempts = {
+        equivalent: '6/8',
+        add: '11/8',
+        mixed: '1 3/8'
+      };
+      handleUserText(attempts[lesson.step] || '6/8');
+    }
+
+    function safeText(value) {
+      return value.replace(/[<>]/g, '');
+    }
+
+    function compact(value) {
+      return value.toLowerCase().replace(/,/g, '.').replace(/\s+/g, '');
+    }
+
+    function isTheoryQuestion(value) {
+      const text = value.toLowerCase();
+      const asksToExplain = /что такое|объясни|расскажи|как устроен|что значит|зачем/.test(text);
+      const hasTheoryTopic = /дроб|числител|знаменател|процент|уравнен|правил|теорем/.test(text);
+      return asksToExplain && hasTheoryTopic;
+    }
+
+    function theoryAnswer(value) {
+      const text = value.toLowerCase();
+      if (/десятичн/.test(text)) {
+        return `<b>Десятичная дробь</b> — это дробь со знаменателем 10, 100, 1000 и так далее, записанная через запятую.<br><br>Например, 7/10 = 0,7, а 35/100 = 0,35. Цифры слева от запятой показывают целые, первая цифра справа — десятые, вторая — сотые.<br><br><b>Пример:</b> 2,45 — это 2 целых, 4 десятых и 5 сотых.`;
+      }
+      if (/числител|знаменател/.test(text)) {
+        return `<b>Числитель</b> стоит над чертой и показывает, сколько частей взяли. <b>Знаменатель</b> стоит под чертой и показывает, на сколько равных частей разделили целое.<br><br>В дроби 3/4 числитель — 3, знаменатель — 4.`;
+      }
+      return `<b>Дробь</b> показывает часть целого. Например, если пиццу разделили на 4 равные части и взяли 3, это записывается как 3/4.<br><br>Число сверху — сколько частей взяли, число снизу — на сколько равных частей разделили целое.`;
+    }
+
+    function isFinalFractionAnswer(value) {
+      const answer = value.toLowerCase().replace(/,/g, '.').trim().replace(/\s+/g, ' ');
+      return answer.includes('11/8') || /^1\s*3\/8$/.test(answer) || answer.includes('1 целая 3/8') || answer.includes('1 и 3/8') || answer.includes('1.375');
+    }
+
+    function handlePracticeAnswer(value) {
+      const answer = compact(value);
+
+      if (isFinalFractionAnswer(value)) {
+        lesson.step = 'complete';
+        botReply(`Верно ✦ Я принимаю этот ответ. <b>Ответ: 11/8, или 1 3/8.</b><br><br>Проверка: 3/4 = 6/8, затем 6/8 + 5/8 = 11/8. В 11/8 помещается одна целая часть и остаётся 3/8.`);
+        return;
+      }
+
+      if (lesson.step === 'equivalent') {
+        if (answer === '6' || answer.includes('6/8')) {
+          lesson.step = 'add';
+          botReply(`Да, верно: <b>3/4 = 6/8</b>.<br><br>Теперь знаменатели одинаковые. Складываем числители: 6 + 5. Какую дробь получим?`);
+        } else {
+          botReply(`Пока не так. Мы умножаем и числитель, и знаменатель на 2: <b>3 × 2</b> и <b>4 × 2</b>. Знаменатель получится 8. Попробуй вычислить 3 × 2.`);
+        }
+        return;
+      }
+
+      if (lesson.step === 'add') {
+        if (answer === '11' || answer.includes('11/8')) {
+          lesson.step = 'mixed';
+          botReply(`Верно: <b>6/8 + 5/8 = 11/8</b>. Я принимаю этот ответ.<br><br>Можно оставить 11/8 или выделить целую часть: сколько целых восьмёрок помещается в 11/8?`);
+        } else {
+          botReply(`Знаменатель 8 сохраняем, а числители складываем: <b>6 + 5</b>. Получится дробь со знаменателем 8.`);
+        }
+        return;
+      }
+
+      if (lesson.step === 'mixed') {
+        if (answer === '1' || answer.includes('1 3/8') || answer.includes('1.375')) {
+          lesson.step = 'complete';
+          botReply(`Да ✦ <b>11/8 = 1 3/8</b>. Задание решено правильно.`);
+        } else {
+          botReply(`В 11/8 помещается одна полная дробь 8/8. После неё остаётся 3/8, поэтому получается 1 3/8.`);
+        }
+        return;
+      }
+
+      botReply('Это задание уже решено. Можно прислать новое условие или задать вопрос по теории.');
+    }
+
+    function handleUserText(value) {
+      addMessage(safeText(value), true);
+
+      if (isTheoryQuestion(value)) {
+        botReply(theoryAnswer(value));
+        return;
+      }
+
+      if (lesson.mode === 'practice') {
+        handlePracticeAnswer(value);
+        return;
+      }
+
+      const text = value.toLowerCase();
+      if (/дроб/.test(text)) {
+        botReply(theoryAnswer(value));
+        return;
+      }
+
+      botReply('Я прочитал вопрос. Если это правило или определение — объясню его сразу. Если это задача — разберём условие и пойдём по шагам с понятными подсказками.');
+    }
+
+    function sendText() {
+      const input = document.getElementById('textInput');
+      const value = input.value.trim();
+      if (!value) return toast('Напиши ответ или выбери кнопку выше');
+      input.value = '';
+      handleUserText(value);
+    }
+
+    let toastTimer;
+    function toast(text) {
+      const element = document.getElementById('toast');
+      element.textContent = text;
+      element.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => element.classList.remove('show'), 2100);
+    }
+  </script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
