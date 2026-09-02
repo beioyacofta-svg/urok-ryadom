@@ -1,4 +1,4 @@
-const CACHE_NAME = 'urok-ryadom-v1';
+const CACHE_NAME = 'urok-ryadom-v2';
 const OFFLINE_FILES = [
   './',
   './index.html',
