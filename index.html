@@ -490,7 +490,7 @@
           <span class="brand-caption">семейный помощник</span>
         </span>
       </div>
-      <span class="preview-pill">макет</span>
+      <span class="preview-pill">ИИ подключён</span>
     </header>
 
     <section id="home" class="view active">
@@ -533,7 +533,7 @@
       <div class="chat-head">
         <button class="back" onclick="showView('home')" aria-label="Назад">←</button>
         <span class="avatar" id="chatAvatar" style="margin:0">С</span>
-        <span class="chat-person"><b id="chatName">Степан</b><span>● помощник готов</span></span>
+        <span class="chat-person"><b id="chatName">Степан</b><span id="chatStatus">● помощник готов</span></span>
       </div>
 
       <div id="messages" class="messages">
@@ -594,15 +594,17 @@
   </main>
 
   <script>
+    const API_URL = 'https://brifdljljudej.ru/api/urok/chat';
     const profiles = {
       senior: { name: 'Степан', grade: 8, avatar: 'С' },
       middle: { name: 'Родион', grade: 5, avatar: 'Р' },
       twin1: { name: 'Алина', grade: 3, avatar: 'А' },
       twin2: { name: 'Полина', grade: 3, avatar: 'П' }
     };
+    const histories = Object.fromEntries(Object.keys(profiles).map(key => [key, []]));
+    let activeProfileKey = 'senior';
     let activeProfile = profiles.senior;
-    let taskSent = false;
-    let lesson = { mode: 'idle', step: null };
+    let awaitingResponse = false;
 
     function showView(id) {
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === id));
@@ -611,159 +613,108 @@
     }
 
     function selectProfile(key) {
+      activeProfileKey = key;
       activeProfile = profiles[key];
       document.getElementById('chatName').textContent = `${activeProfile.name} · ${activeProfile.grade} класс`;
       document.getElementById('chatAvatar').textContent = activeProfile.avatar;
-      taskSent = false;
-      lesson = { mode: 'idle', step: null };
-      document.getElementById('messages').innerHTML = `<div class="bubble"><span class="who">Урок рядом</span>Привет! Пришли фотографию задания, напиши условие или запиши голосовое. Будем разбираться вместе, по шагам.</div>`;
+      renderConversation();
       showView('chat');
     }
 
-    function addMessage(html, mine = false) {
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>'"]/g, character => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      })[character]);
+    }
+
+    function formatText(value) {
+      return escapeHtml(value)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    }
+
+    function addMessage(content, mine = false, trustedHtml = false) {
       const box = document.getElementById('messages');
       const item = document.createElement('div');
       item.className = `bubble${mine ? ' me' : ''}`;
-      item.innerHTML = html;
+      item.innerHTML = `${mine ? '' : '<span class="who">Урок рядом</span>'}${trustedHtml ? content : formatText(content)}`;
       box.appendChild(item);
       box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
+      return item;
     }
 
-    function botReply(html, delay = 520) {
+    function renderConversation() {
+      const box = document.getElementById('messages');
+      box.innerHTML = '';
+      addMessage('Привет! Пришли условие задания или задай вопрос. Будем разбираться вместе, по шагам.');
+      histories[activeProfileKey].forEach(message => addMessage(message.content, message.role === 'user'));
+    }
+
+    function showTyping() {
       const box = document.getElementById('messages');
       const typing = document.createElement('div');
       typing.className = 'bubble';
       typing.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>';
       box.appendChild(typing);
       box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
-      setTimeout(() => {
+      return typing;
+    }
+
+    function setBusy(busy) {
+      awaitingResponse = busy;
+      document.getElementById('textInput').disabled = busy;
+      document.querySelector('.send').disabled = busy;
+      const status = document.getElementById('chatStatus');
+      status.textContent = busy ? '● помощник думает…' : '● помощник готов';
+    }
+
+    async function askAssistant(value, displayHtml = null) {
+      if (awaitingResponse) return toast('Подожди, помощник уже отвечает');
+      const text = String(value).trim();
+      if (!text) return;
+
+      histories[activeProfileKey].push({ role: 'user', content: text });
+      addMessage(displayHtml || text, true, Boolean(displayHtml));
+      setBusy(true);
+      const typing = showTyping();
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            profile: { name: activeProfile.name, grade: activeProfile.grade },
+            messages: histories[activeProfileKey].slice(-12)
+          })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.reply) throw new Error(data.error || 'Нет ответа');
+
+        histories[activeProfileKey].push({ role: 'assistant', content: data.reply });
         typing.remove();
-        addMessage(`<span class="who">Урок рядом</span>${html}`);
-      }, delay);
+        addMessage(data.reply);
+      } catch (error) {
+        typing.remove();
+        addMessage('Не получилось связаться с помощником. Проверь интернет и попробуй отправить сообщение ещё раз.');
+      } finally {
+        setBusy(false);
+        document.getElementById('textInput').focus();
+      }
     }
 
     function sendExample() {
-      if (taskSent) return toast('Пример уже отправлен — попробуй дать ответ');
-      taskSent = true;
-      lesson = { mode: 'practice', step: 'equivalent' };
-      addMessage('Отправлено фото задания<div class="task-photo">Вычисли: 3/4 + 5/8<br>Объясни ход решения.</div>', true);
-      botReply(`Вижу пример с дробями. Сначала сделаем знаменатели одинаковыми.<br><br>Чтобы превратить знаменатель 4 в 8, умножаем его на 2. Числитель тоже умножаем на 2. <b>Какой числитель получится вместо 3?</b>`);
+      const task = 'Вычисли: 3/4 + 5/8. Объясняй мне по одному шагу и не называй окончательный ответ сразу.';
+      const card = 'Отправлено задание<div class="task-photo">Вычисли: 3/4 + 5/8<br>Объясни ход решения.</div>';
+      askAssistant(task, card);
     }
 
     function giveHint() {
-      if (!taskSent) return sendExample();
-      addMessage('Дай маленькую подсказку', true);
-      const hints = {
-        equivalent: 'Умножаем 3 × 2 и 4 × 2. Знаменатель уже известен — 8. Осталось вычислить новый числитель.',
-        add: 'Знаменатели одинаковые, поэтому складываем только числители: 6 + 5. Знаменатель 8 сохраняется.',
-        mixed: 'В числе 11/8 одна целая восьмёрка и ещё 3 восьмых. Поэтому целая часть равна 1.'
-      };
-      botReply(hints[lesson.step] || 'Разберём задание по одному действию. Пришли условие — я объясню первый шаг.');
+      if (!histories[activeProfileKey].length) return toast('Сначала пришли условие задания');
+      askAssistant('Дай мне только одну небольшую подсказку для следующего шага.');
     }
 
     function sendAttempt() {
-      if (!taskSent) return sendExample();
-      const attempts = {
-        equivalent: '6/8',
-        add: '11/8',
-        mixed: '1 3/8'
-      };
-      handleUserText(attempts[lesson.step] || '6/8');
-    }
-
-    function safeText(value) {
-      return value.replace(/[<>]/g, '');
-    }
-
-    function compact(value) {
-      return value.toLowerCase().replace(/,/g, '.').replace(/\s+/g, '');
-    }
-
-    function isTheoryQuestion(value) {
-      const text = value.toLowerCase();
-      const asksToExplain = /что такое|объясни|расскажи|как устроен|что значит|зачем/.test(text);
-      const hasTheoryTopic = /дроб|числител|знаменател|процент|уравнен|правил|теорем/.test(text);
-      return asksToExplain && hasTheoryTopic;
-    }
-
-    function theoryAnswer(value) {
-      const text = value.toLowerCase();
-      if (/десятичн/.test(text)) {
-        return `<b>Десятичная дробь</b> — это дробь со знаменателем 10, 100, 1000 и так далее, записанная через запятую.<br><br>Например, 7/10 = 0,7, а 35/100 = 0,35. Цифры слева от запятой показывают целые, первая цифра справа — десятые, вторая — сотые.<br><br><b>Пример:</b> 2,45 — это 2 целых, 4 десятых и 5 сотых.`;
-      }
-      if (/числител|знаменател/.test(text)) {
-        return `<b>Числитель</b> стоит над чертой и показывает, сколько частей взяли. <b>Знаменатель</b> стоит под чертой и показывает, на сколько равных частей разделили целое.<br><br>В дроби 3/4 числитель — 3, знаменатель — 4.`;
-      }
-      return `<b>Дробь</b> показывает часть целого. Например, если пиццу разделили на 4 равные части и взяли 3, это записывается как 3/4.<br><br>Число сверху — сколько частей взяли, число снизу — на сколько равных частей разделили целое.`;
-    }
-
-    function isFinalFractionAnswer(value) {
-      const answer = value.toLowerCase().replace(/,/g, '.').trim().replace(/\s+/g, ' ');
-      return answer.includes('11/8') || /^1\s*3\/8$/.test(answer) || answer.includes('1 целая 3/8') || answer.includes('1 и 3/8') || answer.includes('1.375');
-    }
-
-    function handlePracticeAnswer(value) {
-      const answer = compact(value);
-
-      if (isFinalFractionAnswer(value)) {
-        lesson.step = 'complete';
-        botReply(`Верно ✦ Я принимаю этот ответ. <b>Ответ: 11/8, или 1 3/8.</b><br><br>Проверка: 3/4 = 6/8, затем 6/8 + 5/8 = 11/8. В 11/8 помещается одна целая часть и остаётся 3/8.`);
-        return;
-      }
-
-      if (lesson.step === 'equivalent') {
-        if (answer === '6' || answer.includes('6/8')) {
-          lesson.step = 'add';
-          botReply(`Да, верно: <b>3/4 = 6/8</b>.<br><br>Теперь знаменатели одинаковые. Складываем числители: 6 + 5. Какую дробь получим?`);
-        } else {
-          botReply(`Пока не так. Мы умножаем и числитель, и знаменатель на 2: <b>3 × 2</b> и <b>4 × 2</b>. Знаменатель получится 8. Попробуй вычислить 3 × 2.`);
-        }
-        return;
-      }
-
-      if (lesson.step === 'add') {
-        if (answer === '11' || answer.includes('11/8')) {
-          lesson.step = 'mixed';
-          botReply(`Верно: <b>6/8 + 5/8 = 11/8</b>. Я принимаю этот ответ.<br><br>Можно оставить 11/8 или выделить целую часть: сколько целых восьмёрок помещается в 11/8?`);
-        } else {
-          botReply(`Знаменатель 8 сохраняем, а числители складываем: <b>6 + 5</b>. Получится дробь со знаменателем 8.`);
-        }
-        return;
-      }
-
-      if (lesson.step === 'mixed') {
-        if (answer === '1' || answer.includes('1 3/8') || answer.includes('1.375')) {
-          lesson.step = 'complete';
-          botReply(`Да ✦ <b>11/8 = 1 3/8</b>. Задание решено правильно.`);
-        } else {
-          botReply(`В 11/8 помещается одна полная дробь 8/8. После неё остаётся 3/8, поэтому получается 1 3/8.`);
-        }
-        return;
-      }
-
-      botReply('Это задание уже решено. Можно прислать новое условие или задать вопрос по теории.');
-    }
-
-    function handleUserText(value) {
-      addMessage(safeText(value), true);
-
-      if (isTheoryQuestion(value)) {
-        botReply(theoryAnswer(value));
-        return;
-      }
-
-      if (lesson.mode === 'practice') {
-        handlePracticeAnswer(value);
-        return;
-      }
-
-      const text = value.toLowerCase();
-      if (/дроб/.test(text)) {
-        botReply(theoryAnswer(value));
-        return;
-      }
-
-      botReply('Я прочитал вопрос. Если это правило или определение — объясню его сразу. Если это задача — разберём условие и пойдём по шагам с понятными подсказками.');
+      askAssistant('Я хочу попробовать сам. Задай мне один конкретный вопрос для следующего шага, но не называй готовый ответ.');
     }
 
     function sendText() {
@@ -771,7 +722,7 @@
       const value = input.value.trim();
       if (!value) return toast('Напиши ответ или выбери кнопку выше');
       input.value = '';
-      handleUserText(value);
+      askAssistant(value);
     }
 
     let toastTimer;
