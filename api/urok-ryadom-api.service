@@ -1,0 +1,30 @@
+[Unit]
+Description=Urok Ryadom OpenAI API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+WorkingDirectory=/opt/urok-ryadom-api
+EnvironmentFile=/etc/urok-ryadom.env
+Environment=PORT=8787
+Environment=OPENAI_MODEL=gpt-5.4-mini
+ExecStart=/usr/bin/node /opt/urok-ryadom-api/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target
