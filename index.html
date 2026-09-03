@@ -438,6 +438,59 @@
     .topic-state { padding: 5px 8px; border-radius: 999px; background: var(--sage-soft); color: #4a7462; font-size: 9px; font-weight: 800; }
     .topic-state.repeat { background: var(--rose-soft); color: #97585e; }
 
+    .settings-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 12px 0 18px; }
+    .settings-person {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      padding: 11px;
+      border: 1px solid var(--line);
+      border-radius: 16px 7px 16px 7px;
+      background: rgba(255,255,255,.52);
+      text-align: left;
+      cursor: pointer;
+    }
+    .settings-person.active { border-color: var(--rose); background: var(--rose-soft); box-shadow: 0 7px 18px rgba(24,48,72,.08); }
+    .settings-person .avatar { flex: 0 0 35px; width: 35px; height: 35px; margin: 0; font-size: 14px; }
+    .settings-person b { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .settings-person small { color: var(--ink-soft); font-size: 10px; }
+    .settings-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px 9px 24px 9px;
+      background: rgba(255,255,255,.58);
+      box-shadow: 0 10px 26px rgba(24,48,72,.08);
+    }
+    .settings-card h3 { margin-bottom: 14px; font-family: Georgia, serif; font-size: 19px; }
+    .field { display: block; margin-bottom: 13px; }
+    .field span { display: block; margin: 0 0 6px 2px; color: var(--ink-soft); font-size: 10px; font-weight: 800; letter-spacing: .65px; text-transform: uppercase; }
+    .field input, .field select {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 0 12px;
+      outline: 0;
+      background: rgba(255,255,255,.84);
+      color: var(--ink);
+      font: inherit;
+    }
+    .field input:focus, .field select:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(217,141,145,.14); }
+    .settings-actions { display: grid; gap: 8px; margin-top: 16px; }
+    .settings-action {
+      min-height: 43px;
+      border: 1px solid var(--ink);
+      border-radius: 13px;
+      padding: 10px 13px;
+      background: var(--ink);
+      color: white;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .settings-action.secondary { background: transparent; color: var(--ink); }
+    .settings-action.danger { border-color: rgba(151,88,94,.32); background: var(--rose-soft); color: #8d4e55; }
+
     .bottom-nav {
       position: fixed;
       z-index: 15;
@@ -516,19 +569,19 @@
 
       <div class="section-label"><span>Детские профили</span><span>4 профиля</span></div>
       <div class="profiles">
-        <button class="profile-card" onclick="selectProfile('senior')">
+        <button class="profile-card" data-profile-key="senior" onclick="selectProfile('senior')">
           <span class="profile-arrow">↗</span><span class="avatar">С</span>
           <span class="profile-name">Степан</span><span class="profile-grade">8 класс</span>
         </button>
-        <button class="profile-card" onclick="selectProfile('middle')">
+        <button class="profile-card" data-profile-key="middle" onclick="selectProfile('middle')">
           <span class="profile-arrow">↗</span><span class="avatar">Р</span>
           <span class="profile-name">Родион</span><span class="profile-grade">5 класс</span>
         </button>
-        <button class="profile-card" onclick="selectProfile('twin1')">
+        <button class="profile-card" data-profile-key="twin1" onclick="selectProfile('twin1')">
           <span class="profile-arrow">↗</span><span class="avatar">А</span>
           <span class="profile-name">Алина</span><span class="profile-grade">3 класс</span>
         </button>
-        <button class="profile-card" onclick="selectProfile('twin2')">
+        <button class="profile-card" data-profile-key="twin2" onclick="selectProfile('twin2')">
           <span class="profile-arrow">↗</span><span class="avatar">П</span>
           <span class="profile-name">Полина</span><span class="profile-grade">3 класс</span>
         </button>
@@ -591,6 +644,31 @@
       </div>
     </section>
 
+    <section id="profiles" class="view">
+      <div class="report-title">
+        <span class="eyebrow">Настройки семьи</span>
+        <h2>Профили детей</h2>
+        <p>Выбери ребёнка, чтобы изменить имя или класс.</p>
+      </div>
+      <div id="settingsProfiles" class="settings-list"></div>
+      <form class="settings-card" onsubmit="saveProfileSettings(event)">
+        <h3 id="settingsHeading">Настройки профиля</h3>
+        <label class="field">
+          <span>Имя</span>
+          <input id="profileNameInput" type="text" maxlength="20" autocomplete="off" required>
+        </label>
+        <label class="field">
+          <span>Класс</span>
+          <select id="profileGradeInput" required></select>
+        </label>
+        <div class="settings-actions">
+          <button class="settings-action" type="submit">Сохранить изменения</button>
+          <button class="settings-action secondary" type="button" onclick="startSelectedLesson()">Открыть занятие</button>
+          <button class="settings-action danger" type="button" onclick="clearSelectedConversation()">Очистить переписку</button>
+        </div>
+      </form>
+    </section>
+
     <nav class="bottom-nav" aria-label="Навигация">
       <button class="nav-btn active" data-view="home" onclick="showView('home')">
         <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg><span>Занятие</span>
@@ -598,7 +676,7 @@
       <button class="nav-btn" data-view="report" onclick="showView('report')">
         <svg viewBox="0 0 24 24"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg><span>Прогресс</span>
       </button>
-      <button class="nav-btn" onclick="toast('Настройки четырёх детских профилей')">
+      <button class="nav-btn" data-view="profiles" onclick="showView('profiles')">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.1 3.4-6 8-6s7.3 1.9 8 6"/></svg><span>Профили</span>
       </button>
     </nav>
@@ -607,30 +685,115 @@
 
   <script>
     const API_URL = 'https://brifdljljudej.ru/api/urok/chat';
-    const profiles = {
+    const DEFAULT_PROFILES = {
       senior: { name: 'Степан', grade: 8, avatar: 'С' },
       middle: { name: 'Родион', grade: 5, avatar: 'Р' },
       twin1: { name: 'Алина', grade: 3, avatar: 'А' },
       twin2: { name: 'Полина', grade: 3, avatar: 'П' }
     };
+    function readSetting(key) {
+      try { return localStorage.getItem(key); } catch { return null; }
+    }
+    function writeSetting(key, value) {
+      try { localStorage.setItem(key, value); } catch { /* Настройки продолжат работать до закрытия страницы. */ }
+    }
+    function loadProfiles() {
+      try {
+        const saved = JSON.parse(readSetting('urok-ryadom-profiles') || '{}');
+        return Object.fromEntries(Object.entries(DEFAULT_PROFILES).map(([key, profile]) => {
+          const savedProfile = saved[key] || {};
+          const name = typeof savedProfile.name === 'string' && savedProfile.name.trim() ? savedProfile.name.trim().slice(0, 20) : profile.name;
+          const grade = Number.isInteger(Number(savedProfile.grade)) && Number(savedProfile.grade) >= 1 && Number(savedProfile.grade) <= 11 ? Number(savedProfile.grade) : profile.grade;
+          return [key, { name, grade, avatar: name.charAt(0).toUpperCase() || profile.avatar }];
+        }));
+      } catch {
+        return JSON.parse(JSON.stringify(DEFAULT_PROFILES));
+      }
+    }
+    const profiles = loadProfiles();
     const histories = Object.fromEntries(Object.keys(profiles).map(key => [key, []]));
-    let activeProfileKey = 'senior';
-    let activeProfile = profiles.senior;
+    const savedActiveProfile = readSetting('urok-ryadom-active-profile');
+    let activeProfileKey = profiles[savedActiveProfile] ? savedActiveProfile : 'senior';
+    let activeProfile = profiles[activeProfileKey];
+    let settingsProfileKey = activeProfileKey;
     let awaitingResponse = false;
 
     function showView(id) {
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === id));
       document.querySelectorAll('.nav-btn[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
+      if (id === 'profiles') renderProfileSettings();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function selectProfile(key) {
       activeProfileKey = key;
       activeProfile = profiles[key];
+      writeSetting('urok-ryadom-active-profile', key);
       document.getElementById('chatName').textContent = `${activeProfile.name} · ${activeProfile.grade} класс`;
       document.getElementById('chatAvatar').textContent = activeProfile.avatar;
       renderConversation();
       showView('chat');
+    }
+
+    function syncProfileCards() {
+      document.querySelectorAll('[data-profile-key]').forEach(card => {
+        const profile = profiles[card.dataset.profileKey];
+        if (!profile) return;
+        card.querySelector('.avatar').textContent = profile.avatar;
+        card.querySelector('.profile-name').textContent = profile.name;
+        card.querySelector('.profile-grade').textContent = `${profile.grade} класс`;
+      });
+    }
+
+    function renderProfileSettings() {
+      const list = document.getElementById('settingsProfiles');
+      list.innerHTML = Object.entries(profiles).map(([key, profile]) => `
+        <button class="settings-person${key === settingsProfileKey ? ' active' : ''}" type="button" onclick="chooseSettingsProfile('${key}')">
+          <span class="avatar">${escapeHtml(profile.avatar)}</span>
+          <span><b>${escapeHtml(profile.name)}</b><small>${profile.grade} класс</small></span>
+        </button>
+      `).join('');
+      const profile = profiles[settingsProfileKey];
+      document.getElementById('settingsHeading').textContent = `Настройки: ${profile.name}`;
+      document.getElementById('profileNameInput').value = profile.name;
+      const gradeInput = document.getElementById('profileGradeInput');
+      gradeInput.innerHTML = Array.from({ length: 11 }, (_, index) => {
+        const grade = index + 1;
+        return `<option value="${grade}"${grade === profile.grade ? ' selected' : ''}>${grade} класс</option>`;
+      }).join('');
+    }
+
+    function chooseSettingsProfile(key) {
+      settingsProfileKey = key;
+      renderProfileSettings();
+    }
+
+    function saveProfileSettings(event) {
+      event.preventDefault();
+      const name = document.getElementById('profileNameInput').value.trim().slice(0, 20);
+      const grade = Number(document.getElementById('profileGradeInput').value);
+      if (!name || !Number.isInteger(grade) || grade < 1 || grade > 11) return toast('Проверь имя и класс');
+
+      const profile = profiles[settingsProfileKey];
+      profile.name = name;
+      profile.grade = grade;
+      profile.avatar = name.charAt(0).toUpperCase();
+      writeSetting('urok-ryadom-profiles', JSON.stringify(profiles));
+      if (settingsProfileKey === activeProfileKey) activeProfile = profile;
+      syncProfileCards();
+      renderProfileSettings();
+      toast('Профиль сохранён');
+    }
+
+    function startSelectedLesson() {
+      selectProfile(settingsProfileKey);
+    }
+
+    function clearSelectedConversation() {
+      const profile = profiles[settingsProfileKey];
+      if (!confirm(`Очистить переписку профиля «${profile.name}»?`)) return;
+      histories[settingsProfileKey] = [];
+      toast('Переписка очищена');
     }
 
     function escapeHtml(value) {
@@ -809,6 +972,8 @@
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => element.classList.remove('show'), 2100);
     }
+
+    syncProfileCards();
   </script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
