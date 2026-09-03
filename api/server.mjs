@@ -1,19 +1,36 @@
 import http from 'node:http';
+import { createHmac, scryptSync, timingSafeEqual } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
 const PORT = Number(process.env.PORT || 8787);
 const MODEL = process.env.OPENAI_MODEL || 'gpt-5.4-mini';
 const API_KEY = process.env.OPENAI_API_KEY;
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const ACCOUNTS_FILE = process.env.ACCOUNTS_FILE || `${process.env.CREDENTIALS_DIRECTORY || ''}/accounts`;
 const ALLOWED_ORIGINS = new Set([
   'https://beioyacofta-svg.github.io',
   'https://brifdljljudej.ru',
 ]);
 const WINDOW_MS = 10 * 60 * 1000;
 const MAX_REQUESTS = 30;
+const MAX_LOGIN_ATTEMPTS = 8;
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
+const SESSION_TTL_SECONDS = 24 * 60 * 60;
 const requestsByIp = new Map();
+const loginAttempts = new Map();
 
-if (!API_KEY) {
-  console.error('OPENAI_API_KEY is not configured');
+if (!API_KEY || !SESSION_SECRET || !ACCOUNTS_FILE) {
+  console.error('Required server configuration is missing');
+  process.exit(1);
+}
+
+let accounts;
+try {
+  const config = JSON.parse(readFileSync(ACCOUNTS_FILE, 'utf8'));
+  accounts = new Map((config.accounts || []).map((account) => [account.id, account]));
+  if (!accounts.size) throw new Error('No accounts configured');
+} catch (error) {
+  console.error(`Accounts configuration failed: ${error.message}`);
   process.exit(1);
 }
 
@@ -23,8 +40,8 @@ function setCorsHeaders(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('X-Content-Type-Options', 'nosniff');
 }
@@ -53,6 +70,81 @@ function isRateLimited(req) {
   return false;
 }
 
+function getClientIp(req) {
+  return String(req.headers['x-real-ip'] || req.socket.remoteAddress || 'unknown');
+}
+
+function isLoginRateLimited(req, accountId) {
+  const now = Date.now();
+  const key = `${getClientIp(req)}:${accountId || 'unknown'}`;
+  const recent = (loginAttempts.get(key) || []).filter((time) => now - time < WINDOW_MS);
+  loginAttempts.set(key, recent);
+  return recent.length >= MAX_LOGIN_ATTEMPTS;
+}
+
+function recordFailedLogin(req, accountId) {
+  const key = `${getClientIp(req)}:${accountId || 'unknown'}`;
+  const recent = (loginAttempts.get(key) || []).filter((time) => Date.now() - time < WINDOW_MS);
+  recent.push(Date.now());
+  loginAttempts.set(key, recent);
+}
+
+function clearLoginAttempts(req, accountId) {
+  loginAttempts.delete(`${getClientIp(req)}:${accountId}`);
+}
+
+function verifyPassword(account, password) {
+  try {
+    const actual = scryptSync(String(password), Buffer.from(account.salt, 'base64'), 64);
+    const expected = Buffer.from(account.passwordHash, 'base64');
+    return actual.length === expected.length && timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
+}
+
+function signSession(account) {
+  const payload = Buffer.from(JSON.stringify({
+    sub: account.id,
+    role: account.role,
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+  })).toString('base64url');
+  const signature = createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
+
+function readSession(req) {
+  const authorization = String(req.headers.authorization || '');
+  if (!authorization.startsWith('Bearer ')) return null;
+  const token = authorization.slice(7);
+  const [payload, signature, extra] = token.split('.');
+  if (!payload || !signature || extra) return null;
+
+  const expected = createHmac('sha256', SESSION_SECRET).update(payload).digest();
+  let actual;
+  try { actual = Buffer.from(signature, 'base64url'); } catch { return null; }
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
+
+  try {
+    const session = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (!session.sub || session.exp < Math.floor(Date.now() / 1000)) return null;
+    const account = accounts.get(session.sub);
+    return account && account.role === session.role ? account : null;
+  } catch {
+    return null;
+  }
+}
+
+function publicAccount(account) {
+  return {
+    id: account.id,
+    displayName: account.displayName,
+    role: account.role,
+    profileKey: account.profileKey || null,
+    grade: account.grade || null,
+  };
+}
+
 function readJson(req) {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -75,10 +167,11 @@ function readJson(req) {
   });
 }
 
-function validatePayload(payload) {
+function validatePayload(payload, account) {
   if (!payload || typeof payload !== 'object') return null;
-  const name = String(payload.profile?.name || '').trim().slice(0, 30);
-  const grade = Number(payload.profile?.grade);
+  const isParent = account.role === 'parent';
+  const name = isParent ? String(payload.profile?.name || '').trim().slice(0, 30) : account.displayName;
+  const grade = isParent ? Number(payload.profile?.grade) : Number(account.grade);
   if (!name || !Number.isInteger(grade) || grade < 1 || grade > 11) return null;
   if (!Array.isArray(payload.messages) || payload.messages.length === 0) return null;
 
@@ -167,11 +260,44 @@ const server = http.createServer(async (req, res) => {
     return sendJson(req, res, 200, { ok: true });
   }
 
-  if (req.method === 'OPTIONS' && req.url === '/chat') {
+  const knownPaths = new Set(['/chat', '/auth/login', '/auth/me', '/auth/logout']);
+  if (req.method === 'OPTIONS' && knownPaths.has(req.url)) {
     if (!isAllowedOrigin(req)) return sendJson(req, res, 403, { error: 'Доступ запрещён' });
     setCorsHeaders(req, res);
     res.writeHead(204);
     return res.end();
+  }
+
+  if (req.method === 'POST' && req.url === '/auth/login') {
+    if (!isAllowedOrigin(req)) return sendJson(req, res, 403, { error: 'Доступ запрещён' });
+    try {
+      const body = await readJson(req);
+      const accountId = String(body?.accountId || '').trim().slice(0, 30);
+      const password = String(body?.password || '').slice(0, 128);
+      if (isLoginRateLimited(req, accountId)) {
+        return sendJson(req, res, 429, { error: 'Слишком много попыток. Подожди 10 минут.' });
+      }
+      const account = accounts.get(accountId);
+      if (!account || !password || !verifyPassword(account, password)) {
+        recordFailedLogin(req, accountId);
+        return sendJson(req, res, 401, { error: 'Неверный пароль' });
+      }
+      clearLoginAttempts(req, accountId);
+      return sendJson(req, res, 200, { token: signSession(account), account: publicAccount(account) });
+    } catch {
+      return sendJson(req, res, 400, { error: 'Не удалось выполнить вход' });
+    }
+  }
+
+  if (req.method === 'GET' && req.url === '/auth/me') {
+    const account = readSession(req);
+    return account
+      ? sendJson(req, res, 200, { account: publicAccount(account) })
+      : sendJson(req, res, 401, { error: 'Требуется вход' });
+  }
+
+  if (req.method === 'POST' && req.url === '/auth/logout') {
+    return sendJson(req, res, 200, { ok: true });
   }
 
   if (req.method !== 'POST' || req.url !== '/chat') {
@@ -179,10 +305,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (!isAllowedOrigin(req)) return sendJson(req, res, 403, { error: 'Доступ запрещён' });
+  const account = readSession(req);
+  if (!account) return sendJson(req, res, 401, { error: 'Требуется вход' });
   if (isRateLimited(req)) return sendJson(req, res, 429, { error: 'Слишком много сообщений. Подожди несколько минут.' });
 
   try {
-    const payload = validatePayload(await readJson(req));
+    const payload = validatePayload(await readJson(req), account);
     if (!payload) return sendJson(req, res, 400, { error: 'Проверь текст сообщения и профиль ребёнка.' });
 
     const reply = await askOpenAI(payload);
