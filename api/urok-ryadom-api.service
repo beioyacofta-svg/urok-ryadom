@@ -8,6 +8,7 @@ Type=simple
 DynamicUser=yes
 WorkingDirectory=/opt/urok-ryadom-api
 EnvironmentFile=/etc/urok-ryadom.env
+LoadCredential=accounts:/etc/urok-ryadom-accounts.json
 Environment=PORT=8787
 Environment=OPENAI_MODEL=gpt-5.4-mini
 ExecStart=/usr/bin/node /opt/urok-ryadom-api/server.mjs
