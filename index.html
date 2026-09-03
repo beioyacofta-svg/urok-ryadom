@@ -326,6 +326,15 @@
       font-size: 15px;
       box-shadow: 0 4px 10px rgba(0,0,0,.1);
     }
+    .uploaded-photo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      margin-top: 8px;
+      border-radius: 12px;
+      object-fit: cover;
+      background: var(--paper-2);
+    }
     .typing { display: inline-flex; gap: 4px; align-items: center; }
     .typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--ink-soft); animation: blink 1s infinite; }
     .typing i:nth-child(2) { animation-delay: .15s; }
@@ -367,7 +376,9 @@
     }
     .attach { background: var(--paper-2); }
     .send { background: var(--rose); color: white; }
-    .composer input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
+    .composer input[type="text"] { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 12px; }
+    .photo-input { display: none; }
+    .attach:disabled, .send:disabled { opacity: .45; cursor: default; }
 
     .report-title { padding: 13px 2px 5px; }
     .report-title h2 {
@@ -549,7 +560,8 @@
         <button class="chip" onclick="sendAttempt()">Я попробую сам</button>
       </div>
       <div class="composer">
-        <button class="attach" onclick="toast('Здесь откроется камера или галерея')" aria-label="Прикрепить">＋</button>
+        <button class="attach" onclick="openPhotoPicker()" aria-label="Открыть камеру или галерею">＋</button>
+        <input id="photoInput" class="photo-input" type="file" accept="image/*" onchange="handlePhoto(event)">
         <input id="textInput" placeholder="Напиши свой ответ…" onkeydown="if(event.key==='Enter') sendText()">
         <button class="send" onclick="sendText()" aria-label="Отправить">↑</button>
       </div>
@@ -663,12 +675,13 @@
     function setBusy(busy) {
       awaitingResponse = busy;
       document.getElementById('textInput').disabled = busy;
+      document.querySelector('.attach').disabled = busy;
       document.querySelector('.send').disabled = busy;
       const status = document.getElementById('chatStatus');
       status.textContent = busy ? '● помощник думает…' : '● помощник готов';
     }
 
-    async function askAssistant(value, displayHtml = null) {
+    async function askAssistant(value, displayHtml = null, image = null) {
       if (awaitingResponse) return toast('Подожди, помощник уже отвечает');
       const text = String(value).trim();
       if (!text) return;
@@ -684,7 +697,8 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             profile: { name: activeProfile.name, grade: activeProfile.grade },
-            messages: histories[activeProfileKey].slice(-12)
+            messages: histories[activeProfileKey].slice(-12),
+            image
           })
         });
         const data = await response.json().catch(() => ({}));
@@ -699,6 +713,68 @@
       } finally {
         setBusy(false);
         document.getElementById('textInput').focus();
+      }
+    }
+
+    function openPhotoPicker() {
+      if (awaitingResponse) return toast('Подожди, помощник уже отвечает');
+      document.getElementById('photoInput').click();
+    }
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        if (!file.type.startsWith('image/')) return reject(new Error('NOT_IMAGE'));
+        if (file.size > 15 * 1024 * 1024) return reject(new Error('TOO_LARGE'));
+
+        const image = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        image.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          const maxSide = 1600;
+          const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+          let quality = .84;
+          let dataUrl = canvas.toDataURL('image/jpeg', quality);
+          while (dataUrl.length > 4_500_000 && quality > .48) {
+            quality -= .1;
+            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          }
+          if (dataUrl.length > 4_500_000) return reject(new Error('TOO_LARGE'));
+          resolve(dataUrl);
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('READ_ERROR'));
+        };
+        image.src = objectUrl;
+      });
+    }
+
+    async function handlePhoto(event) {
+      const input = event.target;
+      const file = input.files && input.files[0];
+      input.value = '';
+      if (!file) return;
+
+      setBusy(true);
+      toast('Подготавливаю фотографию…');
+      try {
+        const image = await compressImage(file);
+        setBusy(false);
+        const preview = `Фото задания<img class="uploaded-photo" src="${image}" alt="Фотография задания">`;
+        await askAssistant(
+          'Рассмотри фотографию задания. Сначала коротко напиши, что на ней, затем помоги решить по одному шагу. Не называй окончательный ответ сразу.',
+          preview,
+          image
+        );
+      } catch (error) {
+        setBusy(false);
+        toast(error.message === 'TOO_LARGE' ? 'Фото слишком большое — выбери другое' : 'Не удалось открыть это изображение');
       }
     }
 
