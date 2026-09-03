@@ -117,8 +117,56 @@
       color: var(--ink-soft);
       font-size: 10px;
       letter-spacing: .5px;
-      text-transform: uppercase;
+      cursor: pointer;
     }
+
+    .app-hidden { display: none; }
+    .auth-gate {
+      position: relative;
+      z-index: 50;
+      display: grid;
+      place-items: center;
+      width: min(100%, 430px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: calc(28px + env(safe-area-inset-top)) 20px calc(28px + env(safe-area-inset-bottom));
+      background:
+        radial-gradient(circle at 85% 12%, rgba(214,170,88,.22), transparent 26%),
+        radial-gradient(circle at 8% 92%, rgba(140,169,157,.25), transparent 31%),
+        var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .auth-gate.hidden { display: none; }
+    .auth-card { width: 100%; }
+    .auth-brand { margin-bottom: 34px; }
+    .auth-card h1 { max-width: 360px; margin-bottom: 9px; }
+    .auth-lead { max-width: 340px; margin-bottom: 24px; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
+    .login-users { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .login-user {
+      min-height: 66px;
+      border: 1px solid var(--line);
+      border-radius: 18px 8px 18px 8px;
+      padding: 9px 6px;
+      background: rgba(255,255,255,.58);
+      font-size: 11px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .login-user:first-child { grid-column: span 2; }
+    .login-user.selected { border-color: var(--rose); background: var(--rose-soft); box-shadow: 0 7px 18px rgba(24,48,72,.08); }
+    .login-user span { display: block; margin-bottom: 4px; font-family: Georgia, serif; font-size: 18px; }
+    .login-form { padding: 17px; border: 1px solid var(--line); border-radius: 24px 9px; background: rgba(255,255,255,.55); }
+    .login-form label { display: block; margin: 0 0 7px 2px; color: var(--ink-soft); font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; }
+    .login-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .login-row input { min-width: 0; height: 48px; border: 1px solid var(--line); border-radius: 13px; padding: 0 13px; outline: 0; background: white; color: var(--ink); }
+    .login-row input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(217,141,145,.14); }
+    .login-submit { min-width: 92px; border: 0; border-radius: 13px; padding: 0 15px; background: var(--ink); color: white; font-weight: 800; cursor: pointer; }
+    .login-submit:disabled { opacity: .55; }
+    .login-error { min-height: 17px; margin: 10px 2px 0; color: #9a4c54; font-size: 11px; }
+    .auth-note { margin: 18px 4px 0; color: var(--ink-soft); font-size: 10px; line-height: 1.45; }
+    .child-mode .parent-only { display: none !important; }
+    .child-mode .bottom-nav { grid-template-columns: 1fr; }
+    .child-mode .back { visibility: hidden; }
 
     .view {
       display: none;
@@ -545,7 +593,35 @@
   </style>
 </head>
 <body>
-  <main class="phone">
+  <section id="authGate" class="auth-gate" aria-label="Вход в семейный помощник">
+    <div class="auth-card">
+      <div class="brand auth-brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span><span class="brand-name">Урок рядом</span><span class="brand-caption">личный вход</span></span>
+      </div>
+      <span class="eyebrow">Семейный помощник</span>
+      <h1>Кто входит?</h1>
+      <p class="auth-lead">Выбери своё имя и введи пароль. Каждый ребёнок увидит только своё занятие.</p>
+      <div class="login-users" role="group" aria-label="Выбор пользователя">
+        <button class="login-user selected" type="button" data-account-id="mama" onclick="chooseLoginAccount('mama')"><span>М</span>Мама</button>
+        <button class="login-user" type="button" data-account-id="stepan" onclick="chooseLoginAccount('stepan')"><span>С</span>Степан</button>
+        <button class="login-user" type="button" data-account-id="rodion" onclick="chooseLoginAccount('rodion')"><span>Р</span>Родион</button>
+        <button class="login-user" type="button" data-account-id="alina" onclick="chooseLoginAccount('alina')"><span>А</span>Алина</button>
+        <button class="login-user" type="button" data-account-id="polina" onclick="chooseLoginAccount('polina')"><span>П</span>Полина</button>
+      </div>
+      <form class="login-form" onsubmit="login(event)">
+        <label id="passwordLabel" for="passwordInput">Пароль для Мамы</label>
+        <div class="login-row">
+          <input id="passwordInput" type="password" maxlength="128" autocomplete="current-password" placeholder="Введи пароль" required>
+          <button id="loginSubmit" class="login-submit" type="submit">Войти</button>
+        </div>
+        <p id="loginError" class="login-error" role="alert"></p>
+      </form>
+      <p class="auth-note">После 8 неверных попыток вход временно блокируется. На общем устройстве всегда нажимай «Выйти».</p>
+    </div>
+  </section>
+
+  <main id="appShell" class="phone app-hidden">
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true"></span>
@@ -554,7 +630,7 @@
           <span class="brand-caption">семейный помощник</span>
         </span>
       </div>
-      <span class="preview-pill">ИИ подключён</span>
+      <button id="accountButton" class="preview-pill" type="button" onclick="logout()" aria-label="Выйти из аккаунта">Выйти</button>
     </header>
 
     <section id="home" class="view active">
@@ -595,7 +671,7 @@
 
     <section id="chat" class="view">
       <div class="chat-head">
-        <button class="back" onclick="showView('home')" aria-label="Назад">←</button>
+        <button class="back" onclick="goBackFromChat()" aria-label="Назад">←</button>
         <span class="avatar" id="chatAvatar" style="margin:0">С</span>
         <span class="chat-person"><b id="chatName">Степан</b><span id="chatStatus">● помощник готов</span></span>
       </div>
@@ -670,13 +746,13 @@
     </section>
 
     <nav class="bottom-nav" aria-label="Навигация">
-      <button class="nav-btn active" data-view="home" onclick="showView('home')">
+      <button class="nav-btn active" data-view="home" onclick="openLessonHome()">
         <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg><span>Занятие</span>
       </button>
-      <button class="nav-btn" data-view="report" onclick="showView('report')">
+      <button class="nav-btn parent-only" data-view="report" onclick="showView('report')">
         <svg viewBox="0 0 24 24"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg><span>Прогресс</span>
       </button>
-      <button class="nav-btn" data-view="profiles" onclick="showView('profiles')">
+      <button class="nav-btn parent-only" data-view="profiles" onclick="showView('profiles')">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.1 3.4-6 8-6s7.3 1.9 8 6"/></svg><span>Профили</span>
       </button>
     </nav>
@@ -684,7 +760,15 @@
   </main>
 
   <script>
-    const API_URL = 'https://brifdljljudej.ru/api/urok/chat';
+    const API_BASE_URL = 'https://brifdljljudej.ru/api/urok';
+    const API_URL = `${API_BASE_URL}/chat`;
+    const ACCOUNT_NAMES = {
+      mama: 'Мама',
+      stepan: 'Степан',
+      rodion: 'Родион',
+      alina: 'Алина',
+      polina: 'Полина'
+    };
     const DEFAULT_PROFILES = {
       senior: { name: 'Степан', grade: 8, avatar: 'С' },
       middle: { name: 'Родион', grade: 5, avatar: 'Р' },
@@ -717,8 +801,124 @@
     let activeProfile = profiles[activeProfileKey];
     let settingsProfileKey = activeProfileKey;
     let awaitingResponse = false;
+    let selectedLoginAccount = 'mama';
+    let currentAccount = null;
+    let sessionToken = readSessionToken();
+
+    function readSessionToken() {
+      try { return sessionStorage.getItem('urok-ryadom-session') || ''; } catch { return ''; }
+    }
+
+    function writeSessionToken(value) {
+      sessionToken = value;
+      try {
+        if (value) sessionStorage.setItem('urok-ryadom-session', value);
+        else sessionStorage.removeItem('urok-ryadom-session');
+      } catch { /* Вход действует до перезагрузки страницы. */ }
+    }
+
+    function chooseLoginAccount(accountId) {
+      if (!ACCOUNT_NAMES[accountId]) return;
+      selectedLoginAccount = accountId;
+      document.querySelectorAll('.login-user').forEach(button => {
+        button.classList.toggle('selected', button.dataset.accountId === accountId);
+      });
+      document.getElementById('passwordLabel').textContent = `Пароль для ${ACCOUNT_NAMES[accountId]}`;
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('loginError').textContent = '';
+      document.getElementById('passwordInput').focus();
+    }
+
+    async function login(event) {
+      event.preventDefault();
+      const password = document.getElementById('passwordInput').value;
+      const submit = document.getElementById('loginSubmit');
+      const errorBox = document.getElementById('loginError');
+      submit.disabled = true;
+      errorBox.textContent = '';
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accountId: selectedLoginAccount, password })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.token || !data.account) {
+          throw new Error(data.error || 'Не удалось выполнить вход');
+        }
+        writeSessionToken(data.token);
+        document.getElementById('passwordInput').value = '';
+        applyAccount(data.account);
+      } catch (error) {
+        errorBox.textContent = error.message === 'Failed to fetch'
+          ? 'Нет связи с сервером. Проверь интернет.'
+          : error.message;
+      } finally {
+        submit.disabled = false;
+      }
+    }
+
+    function applyAccount(account) {
+      currentAccount = account;
+      const isChild = account.role === 'child';
+      document.body.classList.toggle('child-mode', isChild);
+      document.getElementById('authGate').classList.add('hidden');
+      document.getElementById('appShell').classList.remove('app-hidden');
+      document.getElementById('accountButton').textContent = `${account.displayName} · Выйти`;
+
+      if (isChild && profiles[account.profileKey]) {
+        activeProfileKey = account.profileKey;
+        activeProfile = profiles[activeProfileKey];
+        settingsProfileKey = activeProfileKey;
+        selectProfile(activeProfileKey);
+      } else {
+        showView('home');
+      }
+    }
+
+    async function restoreSession() {
+      if (!sessionToken) return;
+      try {
+        const response = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${sessionToken}` }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.account) throw new Error('INVALID_SESSION');
+        applyAccount(data.account);
+      } catch {
+        writeSessionToken('');
+      }
+    }
+
+    async function logout() {
+      const token = sessionToken;
+      writeSessionToken('');
+      currentAccount = null;
+      awaitingResponse = false;
+      document.body.classList.remove('child-mode');
+      document.getElementById('appShell').classList.add('app-hidden');
+      document.getElementById('authGate').classList.remove('hidden');
+      chooseLoginAccount('mama');
+      if (token) {
+        fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => {});
+      }
+    }
+
+    function openLessonHome() {
+      if (currentAccount?.role === 'child') selectProfile(currentAccount.profileKey);
+      else showView('home');
+    }
+
+    function goBackFromChat() {
+      if (currentAccount?.role === 'parent') showView('home');
+    }
 
     function showView(id) {
+      if (currentAccount?.role === 'child' && id !== 'chat') id = 'chat';
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === id));
       document.querySelectorAll('.nav-btn[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
       if (id === 'profiles') renderProfileSettings();
@@ -726,6 +926,8 @@
     }
 
     function selectProfile(key) {
+      if (!profiles[key]) return;
+      if (currentAccount?.role === 'child' && key !== currentAccount.profileKey) return;
       activeProfileKey = key;
       activeProfile = profiles[key];
       writeSetting('urok-ryadom-active-profile', key);
@@ -857,7 +1059,10 @@
       try {
         const response = await fetch(API_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionToken}`
+          },
           body: JSON.stringify({
             profile: { name: activeProfile.name, grade: activeProfile.grade },
             messages: histories[activeProfileKey].slice(-12),
@@ -865,6 +1070,11 @@
           })
         });
         const data = await response.json().catch(() => ({}));
+        if (response.status === 401) {
+          typing.remove();
+          await logout();
+          return;
+        }
         if (!response.ok || !data.reply) throw new Error(data.error || 'Нет ответа');
 
         histories[activeProfileKey].push({ role: 'assistant', content: data.reply });
@@ -974,6 +1184,7 @@
     }
 
     syncProfileCards();
+    restoreSession();
   </script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
