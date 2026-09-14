@@ -322,6 +322,18 @@
     .chat-person { flex: 1; }
     .chat-person b { display: block; font-family: Georgia, serif; font-size: 17px; }
     .chat-person span { color: var(--sage); font-size: 11px; font-weight: 700; }
+    .new-chat {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 9px;
+      background: rgba(255,255,255,.46);
+      color: var(--ink-soft);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .new-chat:disabled { opacity: .45; cursor: default; }
 
     .messages {
       display: flex;
@@ -674,6 +686,7 @@
         <button class="back" onclick="goBackFromChat()" aria-label="Назад">←</button>
         <span class="avatar" id="chatAvatar" style="margin:0">С</span>
         <span class="chat-person"><b id="chatName">Степан</b><span id="chatStatus">● помощник готов</span></span>
+        <button class="new-chat" type="button" onclick="startNewConversation()" aria-label="Начать новое занятие">Новый чат</button>
       </div>
 
       <div id="messages" class="messages">
@@ -795,7 +808,53 @@
       }
     }
     const profiles = loadProfiles();
-    const histories = Object.fromEntries(Object.keys(profiles).map(key => [key, []]));
+    const HISTORY_STORAGE_KEY = 'urok-ryadom-conversations-v1';
+    const HISTORY_STORAGE_VERSION = 1;
+    const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+    const MAX_SAVED_MESSAGES = 60;
+
+    function createEmptyHistories() {
+      return Object.fromEntries(Object.keys(profiles).map(key => [key, []]));
+    }
+
+    function loadHistories() {
+      const empty = createEmptyHistories();
+      try {
+        const saved = JSON.parse(readSetting(HISTORY_STORAGE_KEY) || 'null');
+        if (!saved || saved.version !== HISTORY_STORAGE_VERSION || !saved.profiles) return empty;
+        const fallbackCreatedAt = Number(saved.savedAt) || Date.now();
+        const oldestAllowed = Date.now() - HISTORY_TTL_MS;
+
+        Object.keys(profiles).forEach(key => {
+          if (!Array.isArray(saved.profiles[key])) return;
+          empty[key] = saved.profiles[key]
+            .filter(message => message && ['user', 'assistant'].includes(message.role) && typeof message.content === 'string')
+            .map(message => ({
+              role: message.role,
+              content: message.content.trim().slice(0, 4000),
+              createdAt: Number(message.createdAt) || fallbackCreatedAt
+            }))
+            .filter(message => message.content && message.createdAt >= oldestAllowed)
+            .slice(-MAX_SAVED_MESSAGES);
+        });
+      } catch {
+        return empty;
+      }
+      return empty;
+    }
+
+    function saveHistories() {
+      Object.keys(histories).forEach(key => {
+        histories[key] = histories[key].slice(-MAX_SAVED_MESSAGES);
+      });
+      writeSetting(HISTORY_STORAGE_KEY, JSON.stringify({
+        version: HISTORY_STORAGE_VERSION,
+        savedAt: Date.now(),
+        profiles: histories
+      }));
+    }
+
+    const histories = loadHistories();
     const savedActiveProfile = readSetting('urok-ryadom-active-profile');
     let activeProfileKey = profiles[savedActiveProfile] ? savedActiveProfile : 'senior';
     let activeProfile = profiles[activeProfileKey];
@@ -933,6 +992,9 @@
       writeSetting('urok-ryadom-active-profile', key);
       document.getElementById('chatName').textContent = `${activeProfile.name} · ${activeProfile.grade} класс`;
       document.getElementById('chatAvatar').textContent = activeProfile.avatar;
+      document.getElementById('chatStatus').textContent = histories[key].length
+        ? '● помнит этот диалог'
+        : '● помощник готов';
       renderConversation();
       showView('chat');
     }
@@ -995,6 +1057,8 @@
       const profile = profiles[settingsProfileKey];
       if (!confirm(`Очистить переписку профиля «${profile.name}»?`)) return;
       histories[settingsProfileKey] = [];
+      saveHistories();
+      if (settingsProfileKey === activeProfileKey) renderConversation();
       toast('Переписка очищена');
     }
 
@@ -1023,8 +1087,22 @@
     function renderConversation() {
       const box = document.getElementById('messages');
       box.innerHTML = '';
-      addMessage('Привет! Пришли условие задания или задай вопрос. Будем разбираться вместе, по шагам.');
+      const hasHistory = histories[activeProfileKey].length > 0;
+      addMessage(hasHistory
+        ? 'Продолжаем занятие — я помню наш разговор на этом устройстве.'
+        : 'Привет! Пришли условие задания или задай вопрос. Будем разбираться вместе, по шагам.');
       histories[activeProfileKey].forEach(message => addMessage(message.content, message.role === 'user'));
+    }
+
+    function startNewConversation() {
+      if (awaitingResponse) return toast('Подожди, помощник ещё отвечает');
+      if (!histories[activeProfileKey].length) return toast('Этот чат пока пуст');
+      if (!confirm(`Начать новое занятие для ${activeProfile.name}? Текущий разговор будет удалён.`)) return;
+      histories[activeProfileKey] = [];
+      saveHistories();
+      renderConversation();
+      document.getElementById('chatStatus').textContent = '● помощник готов';
+      toast('Начали новое занятие');
     }
 
     function showTyping() {
@@ -1042,16 +1120,20 @@
       document.getElementById('textInput').disabled = busy;
       document.querySelector('.attach').disabled = busy;
       document.querySelector('.send').disabled = busy;
+      document.querySelector('.new-chat').disabled = busy;
       const status = document.getElementById('chatStatus');
-      status.textContent = busy ? '● помощник думает…' : '● помощник готов';
+      status.textContent = busy ? '● помощник думает…' : '● помнит этот диалог';
     }
 
     async function askAssistant(value, displayHtml = null, image = null) {
       if (awaitingResponse) return toast('Подожди, помощник уже отвечает');
       const text = String(value).trim();
       if (!text) return;
+      const conversationKey = activeProfileKey;
+      const conversationProfile = profiles[conversationKey];
 
-      histories[activeProfileKey].push({ role: 'user', content: text });
+      histories[conversationKey].push({ role: 'user', content: text, createdAt: Date.now() });
+      saveHistories();
       addMessage(displayHtml || text, true, Boolean(displayHtml));
       setBusy(true);
       const typing = showTyping();
@@ -1064,8 +1146,8 @@
             Authorization: `Bearer ${sessionToken}`
           },
           body: JSON.stringify({
-            profile: { name: activeProfile.name, grade: activeProfile.grade },
-            messages: histories[activeProfileKey].slice(-12),
+            profile: { name: conversationProfile.name, grade: conversationProfile.grade },
+            messages: histories[conversationKey].slice(-12),
             image
           })
         });
@@ -1077,12 +1159,15 @@
         }
         if (!response.ok || !data.reply) throw new Error(data.error || 'Нет ответа');
 
-        histories[activeProfileKey].push({ role: 'assistant', content: data.reply });
+        histories[conversationKey].push({ role: 'assistant', content: data.reply, createdAt: Date.now() });
+        saveHistories();
         typing.remove();
-        addMessage(data.reply);
+        if (conversationKey === activeProfileKey) addMessage(data.reply);
       } catch (error) {
         typing.remove();
-        addMessage('Не получилось связаться с помощником. Проверь интернет и попробуй отправить сообщение ещё раз.');
+        if (conversationKey === activeProfileKey) {
+          addMessage('Не получилось связаться с помощником. Проверь интернет и попробуй отправить сообщение ещё раз.');
+        }
       } finally {
         setBusy(false);
         document.getElementById('textInput').focus();
