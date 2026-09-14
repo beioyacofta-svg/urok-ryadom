@@ -414,6 +414,42 @@
       cursor: pointer;
     }
     .chip.primary { border-color: var(--ink); background: var(--ink); color: white; }
+    .pending-photo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      padding: 8px 10px 8px 8px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255,255,255,.72);
+      box-shadow: 0 6px 18px rgba(24,48,72,.07);
+    }
+    .pending-photo[hidden] { display: none; }
+    .pending-photo img {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--paper-2);
+    }
+    .pending-photo-copy { flex: 1; min-width: 0; }
+    .pending-photo-copy b { display: block; margin-bottom: 2px; font-size: 11px; }
+    .pending-photo-copy span { display: block; color: var(--ink-soft); font-size: 10px; line-height: 1.3; }
+    .remove-photo {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      border: 0;
+      border-radius: 50%;
+      background: var(--paper-2);
+      color: var(--ink-soft);
+      cursor: pointer;
+    }
+    .remove-photo:disabled { opacity: .45; cursor: default; }
     .composer {
       display: flex;
       align-items: center;
@@ -701,6 +737,11 @@
         <button class="chip" onclick="giveHint()">Дай подсказку</button>
         <button class="chip" onclick="sendAttempt()">Я попробую сам</button>
       </div>
+      <div id="pendingPhoto" class="pending-photo" hidden>
+        <img id="pendingPhotoPreview" alt="Прикреплённая фотография">
+        <span class="pending-photo-copy"><b>Фото прикреплено</b><span>Добавь вопрос — фото и текст отправятся вместе</span></span>
+        <button class="remove-photo" type="button" onclick="clearPendingPhoto()" aria-label="Убрать фотографию">×</button>
+      </div>
       <div class="composer">
         <button class="attach" onclick="openPhotoPicker()" aria-label="Открыть камеру или галерею">＋</button>
         <input id="photoInput" class="photo-input" type="file" accept="image/*" onchange="handlePhoto(event)">
@@ -860,6 +901,7 @@
     let activeProfile = profiles[activeProfileKey];
     let settingsProfileKey = activeProfileKey;
     let awaitingResponse = false;
+    let pendingImage = null;
     let selectedLoginAccount = 'mama';
     let currentAccount = null;
     let sessionToken = readSessionToken();
@@ -955,6 +997,7 @@
       writeSessionToken('');
       currentAccount = null;
       awaitingResponse = false;
+      clearPendingPhoto();
       document.body.classList.remove('child-mode');
       document.getElementById('appShell').classList.add('app-hidden');
       document.getElementById('authGate').classList.remove('hidden');
@@ -987,6 +1030,7 @@
     function selectProfile(key) {
       if (!profiles[key]) return;
       if (currentAccount?.role === 'child' && key !== currentAccount.profileKey) return;
+      if (activeProfileKey !== key) clearPendingPhoto();
       activeProfileKey = key;
       activeProfile = profiles[key];
       writeSetting('urok-ryadom-active-profile', key);
@@ -1100,6 +1144,7 @@
       if (!confirm(`Начать новое занятие для ${activeProfile.name}? Текущий разговор будет удалён.`)) return;
       histories[activeProfileKey] = [];
       saveHistories();
+      clearPendingPhoto();
       renderConversation();
       document.getElementById('chatStatus').textContent = '● помощник готов';
       toast('Начали новое занятие');
@@ -1121,8 +1166,11 @@
       document.querySelector('.attach').disabled = busy;
       document.querySelector('.send').disabled = busy;
       document.querySelector('.new-chat').disabled = busy;
+      document.querySelector('.remove-photo').disabled = busy;
       const status = document.getElementById('chatStatus');
-      status.textContent = busy ? '● помощник думает…' : '● помнит этот диалог';
+      status.textContent = busy
+        ? '● помощник думает…'
+        : histories[activeProfileKey].length ? '● помнит этот диалог' : '● помощник готов';
     }
 
     async function askAssistant(value, displayHtml = null, image = null) {
@@ -1163,11 +1211,13 @@
         saveHistories();
         typing.remove();
         if (conversationKey === activeProfileKey) addMessage(data.reply);
+        return true;
       } catch (error) {
         typing.remove();
         if (conversationKey === activeProfileKey) {
           addMessage('Не получилось связаться с помощником. Проверь интернет и попробуй отправить сообщение ещё раз.');
         }
+        return false;
       } finally {
         setBusy(false);
         document.getElementById('textInput').focus();
@@ -1177,6 +1227,18 @@
     function openPhotoPicker() {
       if (awaitingResponse) return toast('Подожди, помощник уже отвечает');
       document.getElementById('photoInput').click();
+    }
+
+    function clearPendingPhoto() {
+      pendingImage = null;
+      const holder = document.getElementById('pendingPhoto');
+      const preview = document.getElementById('pendingPhotoPreview');
+      const input = document.getElementById('photoInput');
+      const textInput = document.getElementById('textInput');
+      if (holder) holder.hidden = true;
+      if (preview) preview.removeAttribute('src');
+      if (input) input.value = '';
+      if (textInput) textInput.placeholder = 'Напиши свой ответ…';
     }
 
     function compressImage(file) {
@@ -1218,18 +1280,21 @@
       const file = input.files && input.files[0];
       input.value = '';
       if (!file) return;
+      const photoProfileKey = activeProfileKey;
 
       setBusy(true);
       toast('Подготавливаю фотографию…');
       try {
         const image = await compressImage(file);
         setBusy(false);
-        const preview = `Фото задания<img class="uploaded-photo" src="${image}" alt="Фотография задания">`;
-        await askAssistant(
-          'Рассмотри фотографию задания. Сначала коротко напиши, что на ней, затем помоги решить по одному шагу. Не называй окончательный ответ сразу.',
-          preview,
-          image
-        );
+        if (photoProfileKey !== activeProfileKey) return;
+        pendingImage = image;
+        document.getElementById('pendingPhotoPreview').src = image;
+        document.getElementById('pendingPhoto').hidden = false;
+        const textInput = document.getElementById('textInput');
+        textInput.placeholder = 'Добавь вопрос к фото…';
+        textInput.focus();
+        toast('Фото прикреплено — добавь вопрос');
       } catch (error) {
         setBusy(false);
         toast(error.message === 'TOO_LARGE' ? 'Фото слишком большое — выбери другое' : 'Не удалось открыть это изображение');
@@ -1251,12 +1316,18 @@
       askAssistant('Я хочу попробовать сам. Задай мне один конкретный вопрос для следующего шага, но не называй готовый ответ.');
     }
 
-    function sendText() {
+    async function sendText() {
       const input = document.getElementById('textInput');
       const value = input.value.trim();
-      if (!value) return toast('Напиши ответ или выбери кнопку выше');
+      const image = pendingImage;
+      if (!value && !image) return toast('Напиши ответ или выбери кнопку выше');
+      const message = value || 'Рассмотри фотографию задания и помоги решить его по одному шагу. Не называй окончательный ответ сразу.';
+      const displayHtml = image
+        ? `${value ? `${escapeHtml(value)}<br>` : ''}<img class="uploaded-photo" src="${image}" alt="Фотография задания">`
+        : null;
       input.value = '';
-      askAssistant(value);
+      const sent = await askAssistant(message, displayHtml, image);
+      if (sent && pendingImage === image) clearPendingPhoto();
     }
 
     let toastTimer;
