@@ -1,0 +1,32 @@
+{
+  "families": [
+    {
+      "id": "family-test",
+      "profiles": [
+        { "key": "child-a", "name": "Аня", "grade": 4, "avatar": "А" },
+        { "key": "child-b", "name": "Боря", "grade": 7, "avatar": "Б" }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "id": "test-parent",
+      "familyId": "family-test",
+      "displayName": "Родитель",
+      "role": "parent",
+      "profileKeys": ["child-a", "child-b"],
+      "salt": "dGVzdC1zYWx0LTEyMzQ1Ng==",
+      "passwordHash": "D3iYyT5T3RWspsmWHyYKdCRNI/vNbdBtbpsXqYHN7i7AqH7Cmr4t+Nc1aEK0az6j9zRLNGJvRQIrdDByGcSVaQ=="
+    },
+    {
+      "id": "test-child",
+      "familyId": "family-test",
+      "displayName": "Аня",
+      "role": "child",
+      "profileKey": "child-a",
+      "grade": 4,
+      "salt": "dGVzdC1zYWx0LTEyMzQ1Ng==",
+      "passwordHash": "D3iYyT5T3RWspsmWHyYKdCRNI/vNbdBtbpsXqYHN7i7AqH7Cmr4t+Nc1aEK0az6j9zRLNGJvRQIrdDByGcSVaQ=="
+    }
+  ]
+}

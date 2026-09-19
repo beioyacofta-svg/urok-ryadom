@@ -25,9 +25,11 @@ if (!API_KEY || !SESSION_SECRET || !ACCOUNTS_FILE) {
 }
 
 let accounts;
+let families;
 try {
   const config = JSON.parse(readFileSync(ACCOUNTS_FILE, 'utf8'));
   accounts = new Map((config.accounts || []).map((account) => [account.id, account]));
+  families = new Map((config.families || []).map((family) => [family.id, family]));
   if (!accounts.size) throw new Error('No accounts configured');
 } catch (error) {
   console.error(`Accounts configuration failed: ${error.message}`);
@@ -135,13 +137,59 @@ function readSession(req) {
   }
 }
 
+function normalizeProfile(profile) {
+  const key = String(profile?.key || profile?.profileKey || '').trim().slice(0, 40);
+  const name = String(profile?.name || profile?.displayName || '').trim().slice(0, 30);
+  const grade = Number(profile?.grade);
+  if (!/^[a-zA-Z0-9_-]+$/.test(key) || !name || !Number.isInteger(grade) || grade < 1 || grade > 11) return null;
+  return {
+    key,
+    name,
+    grade,
+    avatar: String(profile?.avatar || name.charAt(0)).trim().slice(0, 2) || name.charAt(0),
+  };
+}
+
+function accountProfiles(account) {
+  const configuredFamily = account.familyId ? families.get(account.familyId) : null;
+  let profiles = Array.isArray(configuredFamily?.profiles)
+    ? configuredFamily.profiles
+    : Array.isArray(account.profiles) ? account.profiles : [];
+
+  if (!profiles.length) {
+    const sameFamily = [...accounts.values()].filter((candidate) => {
+      if (candidate.role !== 'child') return false;
+      return account.familyId ? candidate.familyId === account.familyId : !candidate.familyId;
+    });
+    profiles = sameFamily.map((candidate) => ({
+      key: candidate.profileKey,
+      name: candidate.displayName,
+      grade: candidate.grade,
+      avatar: candidate.avatar,
+    }));
+  }
+
+  const allowedKeys = Array.isArray(account.profileKeys) ? new Set(account.profileKeys) : null;
+  const normalized = profiles
+    .map(normalizeProfile)
+    .filter(Boolean)
+    .filter((profile) => !allowedKeys || allowedKeys.has(profile.key));
+
+  if (account.role === 'child') {
+    return normalized.filter((profile) => profile.key === account.profileKey);
+  }
+  return normalized;
+}
+
 function publicAccount(account) {
   return {
     id: account.id,
     displayName: account.displayName,
     role: account.role,
+    familyId: account.familyId || 'legacy-family',
     profileKey: account.profileKey || null,
     grade: account.grade || null,
+    profiles: accountProfiles(account),
   };
 }
 
@@ -170,8 +218,17 @@ function readJson(req) {
 function validatePayload(payload, account) {
   if (!payload || typeof payload !== 'object') return null;
   const isParent = account.role === 'parent';
-  const name = isParent ? String(payload.profile?.name || '').trim().slice(0, 30) : account.displayName;
-  const grade = isParent ? Number(payload.profile?.grade) : Number(account.grade);
+  const allowedProfiles = accountProfiles(account);
+  const requestedKey = String(payload.profile?.key || '').trim();
+  const requestedProfile = isParent
+    ? allowedProfiles.find((profile) => profile.key === requestedKey)
+      || allowedProfiles.find((profile) => (
+        profile.name === String(payload.profile?.name || '').trim()
+        && profile.grade === Number(payload.profile?.grade)
+      ))
+    : allowedProfiles.find((profile) => profile.key === account.profileKey);
+  const name = requestedProfile?.name || (isParent ? '' : account.displayName);
+  const grade = requestedProfile?.grade || (isParent ? 0 : Number(account.grade));
   if (!name || !Number.isInteger(grade) || grade < 1 || grade > 11) return null;
   if (!Array.isArray(payload.messages) || payload.messages.length === 0) return null;
 

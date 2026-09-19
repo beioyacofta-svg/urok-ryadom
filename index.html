@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f4efe6">
-  <meta name="description" content="Семейный помощник с уроками для Степана, Родиона, Алины и Полины">
+  <meta name="description" content="Семейный помощник, который объясняет школьные задания по шагам">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <title>Урок рядом — семейный помощник</title>
@@ -141,26 +141,14 @@
     .auth-brand { margin-bottom: 34px; }
     .auth-card h1 { max-width: 360px; margin-bottom: 9px; }
     .auth-lead { max-width: 340px; margin-bottom: 24px; color: var(--ink-soft); font-size: 14px; line-height: 1.5; }
-    .login-users { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
-    .login-user {
-      min-height: 66px;
-      border: 1px solid var(--line);
-      border-radius: 18px 8px 18px 8px;
-      padding: 9px 6px;
-      background: rgba(255,255,255,.58);
-      font-size: 11px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-    .login-user:first-child { grid-column: span 2; }
-    .login-user.selected { border-color: var(--rose); background: var(--rose-soft); box-shadow: 0 7px 18px rgba(24,48,72,.08); }
-    .login-user span { display: block; margin-bottom: 4px; font-family: Georgia, serif; font-size: 18px; }
     .login-form { padding: 17px; border: 1px solid var(--line); border-radius: 24px 9px; background: rgba(255,255,255,.55); }
     .login-form label { display: block; margin: 0 0 7px 2px; color: var(--ink-soft); font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; }
+    .login-fields { display: grid; gap: 11px; }
     .login-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-    .login-row input { min-width: 0; height: 48px; border: 1px solid var(--line); border-radius: 13px; padding: 0 13px; outline: 0; background: white; color: var(--ink); }
+    .login-field input, .login-row input { width: 100%; min-width: 0; height: 48px; border: 1px solid var(--line); border-radius: 13px; padding: 0 13px; outline: 0; background: white; color: var(--ink); }
+    .login-field input:focus,
     .login-row input:focus { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(217,141,145,.14); }
-    .login-submit { min-width: 92px; border: 0; border-radius: 13px; padding: 0 15px; background: var(--ink); color: white; font-weight: 800; cursor: pointer; }
+    .login-submit { align-self: end; min-width: 92px; height: 48px; border: 0; border-radius: 13px; padding: 0 15px; background: var(--ink); color: white; font-weight: 800; cursor: pointer; }
     .login-submit:disabled { opacity: .55; }
     .login-error { min-height: 17px; margin: 10px 2px 0; color: #9a4c54; font-size: 11px; }
     .auth-note { margin: 18px 4px 0; color: var(--ink-soft); font-size: 10px; line-height: 1.45; }
@@ -649,23 +637,24 @@
       </div>
       <span class="eyebrow">Семейный помощник</span>
       <h1>Кто входит?</h1>
-      <p class="auth-lead">Выбери своё имя и введи пароль. Каждый ребёнок увидит только своё занятие.</p>
-      <div class="login-users" role="group" aria-label="Выбор пользователя">
-        <button class="login-user selected" type="button" data-account-id="mama" onclick="chooseLoginAccount('mama')"><span>М</span>Мама</button>
-        <button class="login-user" type="button" data-account-id="stepan" onclick="chooseLoginAccount('stepan')"><span>С</span>Степан</button>
-        <button class="login-user" type="button" data-account-id="rodion" onclick="chooseLoginAccount('rodion')"><span>Р</span>Родион</button>
-        <button class="login-user" type="button" data-account-id="alina" onclick="chooseLoginAccount('alina')"><span>А</span>Алина</button>
-        <button class="login-user" type="button" data-account-id="polina" onclick="chooseLoginAccount('polina')"><span>П</span>Полина</button>
-      </div>
+      <p class="auth-lead">Введи семейный логин и пароль. У родителя и каждого ребёнка — своё безопасное пространство.</p>
       <form class="login-form" onsubmit="login(event)">
-        <label id="passwordLabel" for="passwordInput">Пароль для Мамы</label>
-        <div class="login-row">
-          <input id="passwordInput" type="password" maxlength="128" autocomplete="current-password" placeholder="Введи пароль" required>
-          <button id="loginSubmit" class="login-submit" type="submit">Войти</button>
+        <div class="login-fields">
+          <div class="login-field">
+            <label for="accountInput">Логин</label>
+            <input id="accountInput" type="text" maxlength="40" autocomplete="username" placeholder="Например, family-mama" required>
+          </div>
+          <div class="login-row">
+            <div class="login-field">
+              <label for="passwordInput">Пароль</label>
+              <input id="passwordInput" type="password" maxlength="128" autocomplete="current-password" placeholder="Введи пароль" required>
+            </div>
+            <button id="loginSubmit" class="login-submit" type="submit">Войти</button>
+          </div>
         </div>
         <p id="loginError" class="login-error" role="alert"></p>
       </form>
-      <p class="auth-note">После 8 неверных попыток вход временно блокируется. На общем устройстве всегда нажимай «Выйти».</p>
+      <p class="auth-note">Доступ выдаётся семье во время закрытого пилота. После 8 неверных попыток вход временно блокируется. На общем устройстве всегда нажимай «Выйти».</p>
     </div>
   </section>
 
@@ -691,25 +680,8 @@
         </svg>
       </div>
 
-      <div class="section-label"><span>Детские профили</span><span>4 профиля</span></div>
-      <div class="profiles">
-        <button class="profile-card" data-profile-key="senior" onclick="selectProfile('senior')">
-          <span class="profile-arrow">↗</span><span class="avatar">С</span>
-          <span class="profile-name">Степан</span><span class="profile-grade">8 класс</span>
-        </button>
-        <button class="profile-card" data-profile-key="middle" onclick="selectProfile('middle')">
-          <span class="profile-arrow">↗</span><span class="avatar">Р</span>
-          <span class="profile-name">Родион</span><span class="profile-grade">5 класс</span>
-        </button>
-        <button class="profile-card" data-profile-key="twin1" onclick="selectProfile('twin1')">
-          <span class="profile-arrow">↗</span><span class="avatar">А</span>
-          <span class="profile-name">Алина</span><span class="profile-grade">3 класс</span>
-        </button>
-        <button class="profile-card" data-profile-key="twin2" onclick="selectProfile('twin2')">
-          <span class="profile-arrow">↗</span><span class="avatar">П</span>
-          <span class="profile-name">Полина</span><span class="profile-grade">3 класс</span>
-        </button>
-      </div>
+      <div class="section-label"><span>Детские профили</span><span id="profileCount">0 профилей</span></div>
+      <div id="homeProfiles" class="profiles"></div>
 
       <div class="promise">
         <span class="promise-icon">✦</span>
@@ -721,7 +693,7 @@
       <div class="chat-head">
         <button class="back" onclick="goBackFromChat()" aria-label="Назад">←</button>
         <span class="avatar" id="chatAvatar" style="margin:0">С</span>
-        <span class="chat-person"><b id="chatName">Степан</b><span id="chatStatus">● помощник готов</span></span>
+        <span class="chat-person"><b id="chatName">Ребёнок</b><span id="chatStatus">● помощник готов</span></span>
         <button class="new-chat" type="button" onclick="startNewConversation()" aria-label="Начать новое занятие">Новый чат</button>
       </div>
 
@@ -753,25 +725,21 @@
     <section id="report" class="view">
       <div class="report-title">
         <span class="eyebrow">Родительский раздел</span>
-        <h2>Сегодня занимались</h2>
-        <p>Коротко и по делу — без лишних оценок.</p>
+        <h2>История занятий</h2>
+        <p>Здесь показана фактическая активность на этом устройстве — без придуманных оценок.</p>
       </div>
       <div class="summary-card">
-        <small>Главное за день</small>
-        <strong>2 ребёнка · 5 заданий</strong>
-        <p>Математика идёт уверенно. По русскому стоит ещё раз повторить безударные гласные.</p>
+        <small>Сегодня</small>
+        <strong id="reportHeadline">Занятий пока не было</strong>
+        <p id="reportDescription">После первого вопроса здесь появится короткая сводка активности.</p>
       </div>
       <div class="metric-row">
-        <div class="metric"><b>38</b><span>минут<br>занятий</span></div>
-        <div class="metric"><b>3</b><span>сделано<br>самостоятельно</span></div>
-        <div class="metric"><b>2</b><span>темы<br>повторить</span></div>
+        <div class="metric"><b id="reportChildren">0</b><span>детей<br>занимались</span></div>
+        <div class="metric"><b id="reportQuestions">0</b><span>вопросов<br>задано</span></div>
+        <div class="metric"><b id="reportReplies">0</b><span>ответов<br>получено</span></div>
       </div>
-      <div class="section-label"><span>Темы дня</span><span>2 сентября</span></div>
-      <div>
-        <div class="topic"><span class="topic-icon">＋</span><span><b>Дроби и действия</b><small>5 класс · 3 задания</small></span><span class="topic-state">усвоено</span></div>
-        <div class="topic"><span class="topic-icon">А</span><span><b>Безударные гласные</b><small>3 класс · 2 задания</small></span><span class="topic-state repeat">повторить</span></div>
-        <div class="topic"><span class="topic-icon">EN</span><span><b>Present Simple</b><small>8 класс · без занятия</small></span><span class="topic-state">позже</span></div>
-      </div>
+      <div class="section-label"><span>По профилям</span><span>последние 30 дней</span></div>
+      <div id="reportProfiles"></div>
     </section>
 
     <section id="profiles" class="view">
@@ -795,6 +763,7 @@
           <button class="settings-action" type="submit">Сохранить изменения</button>
           <button class="settings-action secondary" type="button" onclick="startSelectedLesson()">Открыть занятие</button>
           <button class="settings-action danger" type="button" onclick="clearSelectedConversation()">Очистить переписку</button>
+          <button class="settings-action danger" type="button" onclick="clearFamilyData()">Удалить данные семьи с устройства</button>
         </div>
       </form>
     </section>
@@ -804,7 +773,7 @@
         <svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9 20v-6h6v6"/></svg><span>Занятие</span>
       </button>
       <button class="nav-btn parent-only" data-view="report" onclick="showView('report')">
-        <svg viewBox="0 0 24 24"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg><span>Прогресс</span>
+        <svg viewBox="0 0 24 24"><path d="M5 19V9m7 10V5m7 14v-7"/><path d="M3 19h18"/></svg><span>История</span>
       </button>
       <button class="nav-btn parent-only" data-view="profiles" onclick="showView('profiles')">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c.7-4.1 3.4-6 8-6s7.3 1.9 8 6"/></svg><span>Профили</span>
@@ -816,43 +785,68 @@
   <script>
     const API_BASE_URL = 'https://brifdljljudej.ru/api/urok';
     const API_URL = `${API_BASE_URL}/chat`;
-    const ACCOUNT_NAMES = {
-      mama: 'Мама',
-      stepan: 'Степан',
-      rodion: 'Родион',
-      alina: 'Алина',
-      polina: 'Полина'
-    };
-    const DEFAULT_PROFILES = {
-      senior: { name: 'Степан', grade: 8, avatar: 'С' },
-      middle: { name: 'Родион', grade: 5, avatar: 'Р' },
-      twin1: { name: 'Алина', grade: 3, avatar: 'А' },
-      twin2: { name: 'Полина', grade: 3, avatar: 'П' }
-    };
+    const HISTORY_STORAGE_VERSION = 1;
+    const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+    const MAX_SAVED_MESSAGES = 60;
+    let storageNamespace = 'guest';
+    let profiles = {};
+    let histories = {};
+    let activeProfileKey = '';
+    let activeProfile = null;
+    let settingsProfileKey = '';
+    let awaitingResponse = false;
+    let pendingImage = null;
+    let currentAccount = null;
+    let sessionToken = readSessionToken();
+
     function readSetting(key) {
       try { return localStorage.getItem(key); } catch { return null; }
     }
     function writeSetting(key, value) {
       try { localStorage.setItem(key, value); } catch { /* Настройки продолжат работать до закрытия страницы. */ }
     }
-    function loadProfiles() {
+
+    function removeSetting(key) {
+      try { localStorage.removeItem(key); } catch { /* Данные уже недоступны. */ }
+    }
+
+    function scopedKey(name) {
+      return `urok-ryadom:${storageNamespace}:${name}`;
+    }
+
+    function migrateLegacyFamilyStorage() {
+      if (storageNamespace !== 'legacy-family') return;
+      const mappings = [
+        ['urok-ryadom-profiles', scopedKey('profiles')],
+        ['urok-ryadom-conversations-v1', scopedKey('conversations-v1')],
+        ['urok-ryadom-active-profile', scopedKey('active-profile')]
+      ];
+      mappings.forEach(([oldKey, newKey]) => {
+        if (readSetting(newKey) != null) return;
+        const legacyValue = readSetting(oldKey);
+        if (legacyValue != null) writeSetting(newKey, legacyValue);
+      });
+    }
+
+    function loadProfiles(account) {
+      const serverProfiles = Array.isArray(account.profiles) ? account.profiles : [];
+      const defaults = Object.fromEntries(serverProfiles.map(profile => [profile.key, {
+        name: String(profile.name || '').trim().slice(0, 20),
+        grade: Number(profile.grade),
+        avatar: String(profile.avatar || profile.name?.charAt(0) || '?').trim().slice(0, 2)
+      }]).filter(([, profile]) => profile.name && Number.isInteger(profile.grade)));
       try {
-        const saved = JSON.parse(readSetting('urok-ryadom-profiles') || '{}');
-        return Object.fromEntries(Object.entries(DEFAULT_PROFILES).map(([key, profile]) => {
+        const saved = JSON.parse(readSetting(scopedKey('profiles')) || '{}');
+        return Object.fromEntries(Object.entries(defaults).map(([key, profile]) => {
           const savedProfile = saved[key] || {};
           const name = typeof savedProfile.name === 'string' && savedProfile.name.trim() ? savedProfile.name.trim().slice(0, 20) : profile.name;
           const grade = Number.isInteger(Number(savedProfile.grade)) && Number(savedProfile.grade) >= 1 && Number(savedProfile.grade) <= 11 ? Number(savedProfile.grade) : profile.grade;
           return [key, { name, grade, avatar: name.charAt(0).toUpperCase() || profile.avatar }];
         }));
       } catch {
-        return JSON.parse(JSON.stringify(DEFAULT_PROFILES));
+        return defaults;
       }
     }
-    const profiles = loadProfiles();
-    const HISTORY_STORAGE_KEY = 'urok-ryadom-conversations-v1';
-    const HISTORY_STORAGE_VERSION = 1;
-    const HISTORY_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-    const MAX_SAVED_MESSAGES = 60;
 
     function createEmptyHistories() {
       return Object.fromEntries(Object.keys(profiles).map(key => [key, []]));
@@ -861,7 +855,7 @@
     function loadHistories() {
       const empty = createEmptyHistories();
       try {
-        const saved = JSON.parse(readSetting(HISTORY_STORAGE_KEY) || 'null');
+        const saved = JSON.parse(readSetting(scopedKey('conversations-v1')) || 'null');
         if (!saved || saved.version !== HISTORY_STORAGE_VERSION || !saved.profiles) return empty;
         const fallbackCreatedAt = Number(saved.savedAt) || Date.now();
         const oldestAllowed = Date.now() - HISTORY_TTL_MS;
@@ -888,23 +882,25 @@
       Object.keys(histories).forEach(key => {
         histories[key] = histories[key].slice(-MAX_SAVED_MESSAGES);
       });
-      writeSetting(HISTORY_STORAGE_KEY, JSON.stringify({
+      writeSetting(scopedKey('conversations-v1'), JSON.stringify({
         version: HISTORY_STORAGE_VERSION,
         savedAt: Date.now(),
         profiles: histories
       }));
     }
 
-    const histories = loadHistories();
-    const savedActiveProfile = readSetting('urok-ryadom-active-profile');
-    let activeProfileKey = profiles[savedActiveProfile] ? savedActiveProfile : 'senior';
-    let activeProfile = profiles[activeProfileKey];
-    let settingsProfileKey = activeProfileKey;
-    let awaitingResponse = false;
-    let pendingImage = null;
-    let selectedLoginAccount = 'mama';
-    let currentAccount = null;
-    let sessionToken = readSessionToken();
+    function initializeWorkspace(account) {
+      storageNamespace = String(account.familyId || account.id || 'family').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 60);
+      migrateLegacyFamilyStorage();
+      profiles = loadProfiles(account);
+      histories = loadHistories();
+      const savedActiveProfile = readSetting(scopedKey('active-profile'));
+      activeProfileKey = profiles[savedActiveProfile] ? savedActiveProfile : Object.keys(profiles)[0] || '';
+      activeProfile = profiles[activeProfileKey] || null;
+      settingsProfileKey = activeProfileKey;
+      renderHomeProfiles();
+      syncProfileCards();
+    }
 
     function readSessionToken() {
       try { return sessionStorage.getItem('urok-ryadom-session') || ''; } catch { return ''; }
@@ -918,20 +914,9 @@
       } catch { /* Вход действует до перезагрузки страницы. */ }
     }
 
-    function chooseLoginAccount(accountId) {
-      if (!ACCOUNT_NAMES[accountId]) return;
-      selectedLoginAccount = accountId;
-      document.querySelectorAll('.login-user').forEach(button => {
-        button.classList.toggle('selected', button.dataset.accountId === accountId);
-      });
-      document.getElementById('passwordLabel').textContent = `Пароль для ${ACCOUNT_NAMES[accountId]}`;
-      document.getElementById('passwordInput').value = '';
-      document.getElementById('loginError').textContent = '';
-      document.getElementById('passwordInput').focus();
-    }
-
     async function login(event) {
       event.preventDefault();
+      const accountId = document.getElementById('accountInput').value.trim();
       const password = document.getElementById('passwordInput').value;
       const submit = document.getElementById('loginSubmit');
       const errorBox = document.getElementById('loginError');
@@ -942,7 +927,7 @@
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accountId: selectedLoginAccount, password })
+          body: JSON.stringify({ accountId, password })
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok || !data.token || !data.account) {
@@ -963,6 +948,13 @@
     function applyAccount(account) {
       currentAccount = account;
       const isChild = account.role === 'child';
+      initializeWorkspace(account);
+      if (!activeProfile) {
+        writeSessionToken('');
+        currentAccount = null;
+        document.getElementById('loginError').textContent = 'Для этой семьи пока не настроены детские профили.';
+        return;
+      }
       document.body.classList.toggle('child-mode', isChild);
       document.getElementById('authGate').classList.add('hidden');
       document.getElementById('appShell').classList.remove('app-hidden');
@@ -1001,7 +993,7 @@
       document.body.classList.remove('child-mode');
       document.getElementById('appShell').classList.add('app-hidden');
       document.getElementById('authGate').classList.remove('hidden');
-      chooseLoginAccount('mama');
+      document.getElementById('accountInput').focus();
       if (token) {
         fetch(`${API_BASE_URL}/auth/logout`, {
           method: 'POST',
@@ -1023,6 +1015,7 @@
       if (currentAccount?.role === 'child' && id !== 'chat') id = 'chat';
       document.querySelectorAll('.view').forEach(view => view.classList.toggle('active', view.id === id));
       document.querySelectorAll('.nav-btn[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === id));
+      if (id === 'report') renderReport();
       if (id === 'profiles') renderProfileSettings();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1033,7 +1026,7 @@
       if (activeProfileKey !== key) clearPendingPhoto();
       activeProfileKey = key;
       activeProfile = profiles[key];
-      writeSetting('urok-ryadom-active-profile', key);
+      writeSetting(scopedKey('active-profile'), key);
       document.getElementById('chatName').textContent = `${activeProfile.name} · ${activeProfile.grade} класс`;
       document.getElementById('chatAvatar').textContent = activeProfile.avatar;
       document.getElementById('chatStatus').textContent = histories[key].length
@@ -1041,6 +1034,18 @@
         : '● помощник готов';
       renderConversation();
       showView('chat');
+    }
+
+    function renderHomeProfiles() {
+      const holder = document.getElementById('homeProfiles');
+      const entries = Object.entries(profiles);
+      document.getElementById('profileCount').textContent = `${entries.length} ${entries.length === 1 ? 'профиль' : entries.length < 5 ? 'профиля' : 'профилей'}`;
+      holder.innerHTML = entries.map(([key, profile]) => `
+        <button class="profile-card" data-profile-key="${escapeHtml(key)}" onclick="selectProfile('${escapeJsString(key)}')">
+          <span class="profile-arrow">↗</span><span class="avatar">${escapeHtml(profile.avatar)}</span>
+          <span class="profile-name">${escapeHtml(profile.name)}</span><span class="profile-grade">${profile.grade} класс</span>
+        </button>
+      `).join('');
     }
 
     function syncProfileCards() {
@@ -1051,6 +1056,47 @@
         card.querySelector('.profile-name').textContent = profile.name;
         card.querySelector('.profile-grade').textContent = `${profile.grade} класс`;
       });
+    }
+
+    function renderReport() {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      let activeChildren = 0;
+      let questionCount = 0;
+      let replyCount = 0;
+
+      const profileRows = Object.entries(profiles).map(([key, profile]) => {
+        const messages = histories[key] || [];
+        const todayMessages = messages.filter(message => message.createdAt >= startOfToday.getTime());
+        const questions = todayMessages.filter(message => message.role === 'user').length;
+        const replies = todayMessages.filter(message => message.role === 'assistant').length;
+        if (questions || replies) activeChildren += 1;
+        questionCount += questions;
+        replyCount += replies;
+
+        const latestQuestion = [...messages].reverse().find(message => message.role === 'user');
+        const note = latestQuestion
+          ? escapeHtml(latestQuestion.content.slice(0, 82))
+          : 'На этом устройстве занятий пока нет';
+        return `
+          <div class="topic">
+            <span class="topic-icon">${escapeHtml(profile.avatar)}</span>
+            <span><b>${escapeHtml(profile.name)}</b><small>${profile.grade} класс · ${note}</small></span>
+            <span class="topic-state">${questions ? `${questions} вопр.` : 'пока тихо'}</span>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('reportChildren').textContent = activeChildren;
+      document.getElementById('reportQuestions').textContent = questionCount;
+      document.getElementById('reportReplies').textContent = replyCount;
+      document.getElementById('reportHeadline').textContent = activeChildren
+        ? `${activeChildren} ${activeChildren === 1 ? 'ребёнок занимался' : 'детей занимались'}`
+        : 'Занятий пока не было';
+      document.getElementById('reportDescription').textContent = questionCount
+        ? `Сегодня задано вопросов: ${questionCount}. Ответов помощника: ${replyCount}.`
+        : 'После первого вопроса здесь появится короткая сводка активности.';
+      document.getElementById('reportProfiles').innerHTML = profileRows;
     }
 
     function renderProfileSettings() {
@@ -1086,8 +1132,9 @@
       profile.name = name;
       profile.grade = grade;
       profile.avatar = name.charAt(0).toUpperCase();
-      writeSetting('urok-ryadom-profiles', JSON.stringify(profiles));
+      writeSetting(scopedKey('profiles'), JSON.stringify(profiles));
       if (settingsProfileKey === activeProfileKey) activeProfile = profile;
+      renderHomeProfiles();
       syncProfileCards();
       renderProfileSettings();
       toast('Профиль сохранён');
@@ -1106,10 +1153,29 @@
       toast('Переписка очищена');
     }
 
+    function clearFamilyData() {
+      if (!confirm('Удалить с этого устройства все локальные профили и переписки семьи? Отменить действие нельзя.')) return;
+      removeSetting(scopedKey('profiles'));
+      removeSetting(scopedKey('conversations-v1'));
+      removeSetting(scopedKey('active-profile'));
+      profiles = loadProfiles(currentAccount);
+      histories = createEmptyHistories();
+      activeProfileKey = Object.keys(profiles)[0] || '';
+      activeProfile = profiles[activeProfileKey] || null;
+      settingsProfileKey = activeProfileKey;
+      renderHomeProfiles();
+      renderProfileSettings();
+      toast('Локальные данные удалены');
+    }
+
     function escapeHtml(value) {
       return String(value).replace(/[&<>'"]/g, character => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
       })[character]);
+    }
+
+    function escapeJsString(value) {
+      return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     }
 
     function formatText(value) {
@@ -1194,7 +1260,7 @@
             Authorization: `Bearer ${sessionToken}`
           },
           body: JSON.stringify({
-            profile: { name: conversationProfile.name, grade: conversationProfile.grade },
+            profile: { key: conversationKey, name: conversationProfile.name, grade: conversationProfile.grade },
             messages: histories[conversationKey].slice(-12),
             image
           })
@@ -1339,8 +1405,9 @@
       toastTimer = setTimeout(() => element.classList.remove('show'), 2100);
     }
 
-    syncProfileCards();
-    restoreSession();
+    restoreSession().finally(() => {
+      if (!currentAccount) document.getElementById('accountInput').focus();
+    });
   </script>
   <script>
     if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

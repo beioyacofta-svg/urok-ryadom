@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+api/accounts.json
+api/*-accounts.json
+!api/accounts.example.json
+node_modules/
+*.log
